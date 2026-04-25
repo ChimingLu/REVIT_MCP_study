@@ -42,18 +42,27 @@
 ---
 
 > [!TIP]
-> ##  AI 協作指南 (AI Collaboration Guide)
+> ## 你是誰？從這裡開始
 >
-> **開始協作前，請務必遵循以下規範：**
+> 本專案有多個入口文件，請依你的身份選擇閱讀路徑：
 >
-> 1. **人類開發者 (Human Developer)**：
->    - 請詳讀 [**CLAUDE.md**](./CLAUDE.md)，了解本專案的架構、建構指令、部署規則與程式碼慣例。
->    - `GEMINI.md` 和 `AGENTS.md` 皆重定向至 `CLAUDE.md`，為專案唯一規範文件。
+> | 你的身份 | 先讀這個 | 再讀這個 |
+> |---|---|---|
+> | **想安裝使用 Revit MCP** | 本檔下方「一鍵安裝」段 | — |
+> | **想貢獻 domain 知識 / SOP / 規則** | [CONTRIBUTING.md](./CONTRIBUTING.md) | [domain/README.md](./domain/README.md) |
+> | **想開發新工具 / 修改程式碼** | [CLAUDE.md](./CLAUDE.md) | 執行 `/dev-guide` 命令 |
+> | **想了解整體架構** | [CLAUDE.md](./CLAUDE.md) | [docs/DOCS_STRUCTURE.md](./docs/DOCS_STRUCTURE.md) |
+> | **我是學生上課** | [教材/README.md](./教材/README.md) | — |
+> | **我是 AI Agent**（Claude / Gemini / Copilot） | [CLAUDE.md](./CLAUDE.md)（**必讀**） | 依任務觸發對應 skill |
 >
-> 2. **AI 助手 (AI Assistant / Agent)**：
->    - **Context Loading**：啟動時必須載入 [**CLAUDE.md**](./CLAUDE.md) 以獲取專案地圖與技術指引。
->    - **Workflow Compliance**：執行任務前，必須檢查 `domain/` 目錄下是否有定義好的工作流程（如上色任務）。
->    - **Safety First**：所有 Revit 操作必須是可逆的，使用 Transaction 確保可復原。
+> ---
+>
+> ### 關鍵原則（所有角色都要遵守）
+>
+> - **AI 規範唯一性**：`GEMINI.md` 和 `AGENTS.md` 皆重定向至 `CLAUDE.md`，為專案唯一 AI 規範文件
+> - **Safety First**：所有 Revit 操作必須可逆，使用 Transaction 確保可復原
+> - **Workflow Compliance**：AI Agent 執行任務前，必須先檢查 `domain/` 目錄是否已有對應的工作流程
+> - **貢獻邊界**：程式碼由維護者管理，外部貢獻者只修改 `domain/` 知識檔案（詳見 [CONTRIBUTING.md](./CONTRIBUTING.md)）
 >
 > ---
 
@@ -387,7 +396,12 @@ MCP Server 需要 Node.js 才能執行。先檢查您是否已安裝：
 >  **關於埠號 (Port) 的說明**：
 > - `8964` 是 MCP Server 預設的通訊埠號
 > - 埠號是一個任意號碼，有可能被其他程式佔用
-> - 如果您看到「埠號 8964 已被佔用」的錯誤訊息，需要手動調整：
+> - **常見問題：Port 8964 被 System (PID: 4) 佔用**
+>   - 原因：Revit 異常關閉後，HTTP.sys 的 Request Queue 殘留
+>   - 修復：在**系統管理員** PowerShell 中執行 `net stop http /y; net start http`
+>   - 或執行：`powershell -ExecutionPolicy Bypass -File scripts\release-port.ps1`
+>   - 若 HTTP 服務卡在 STOP_PENDING，需重新開機
+> - 如果是被其他程式佔用（非 PID 4），可手動調整埠號：
 >   1. 開啟本專案的設定檔 `MCP-Server/src/index.ts`
 >   2. 找到 `PORT = 8964` 的這一行
 >   3. 改成其他未被使用的埠號，例如 `8766` 或 `9000`
@@ -1315,10 +1329,11 @@ public Result OnStartup(UIControlledApplication application)
 A: 確認 `RevitMCP.addin` 已正確放置在 Add-in 目錄，並重新啟動 Revit。
 
 ### Q: MCP Server 無法連線到 Revit？
-A: 
+A:
 1. 確認 Revit 中已點擊「MCP 服務 (開/關)」啟動服務
 2. 確認 Port 8964 未被其他程式佔用
-3. 檢查防火牆設定
+3. 若顯示「Port 8964 被 System (PID: 4) 佔用」，執行 `scripts\release-port.ps1`（需系統管理員）
+4. 檢查防火牆設定
 
 ### Q: AI 說找不到 Revit 工具？
 A: 確認 MCP Server 設定檔路徑正確，並重新啟動 AI 應用程式。
@@ -1430,6 +1445,8 @@ MIT License
 | **domain/** | |
 | [domain/README.md](./domain/README.md) | 領域知識目錄（AI 工作流程 SOP） |
 | [domain/lessons.md](./domain/lessons.md) | 開發經驗與避坑規則（由 `/lessons` 指令維護） |
+| **log/** | |
+| [log/README.md](./log/README.md) | 事件日誌系統說明（Karpathy LLM Wiki pattern，跨 AI 自動維護） |
 | **docs/** | |
 | [docs/DOCS_STRUCTURE.md](./docs/DOCS_STRUCTURE.md) | 文件目錄結構說明 |
 | [docs/MIGRATION_GUIDE.md](./docs/MIGRATION_GUIDE.md) | 統一建構遷移指南（舊版升級必讀） |

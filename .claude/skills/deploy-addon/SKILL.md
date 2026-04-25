@@ -15,7 +15,8 @@ First, detect the OS. If **not Windows**, do not attempt deployment. Instead, sh
     Run the following command on your Windows machine:
 
     $version = "2024"  # change to your Revit version
-    Copy-Item "MCP\bin\Release\RevitMCP.dll" `
+    $yy = $version.Substring(2)  # "24"
+    Copy-Item "MCP\bin\Release.R$yy\RevitMCP.dll" `
       "$env:APPDATA\Autodesk\Revit\Addins\$version\RevitMCP\" -Force
 ```
 
@@ -38,15 +39,17 @@ Then stop.
 
 ## Steps
 
-1. **Check source DLL**: Verify `MCP/bin/Release/RevitMCP.dll` exists.
+1. **Check source DLL**: Verify `MCP/bin/Release.R{YY}/RevitMCP.dll` exists (where `{YY}` matches the target version, e.g. `Release.R24` for Revit 2024).
    - If missing → tell user to run `/build-revit --version {version}` first, then stop.
 
-2. **Warn before copy**: Display:
-   ```
-   ⚠️  Close Revit before continuing.
-       The DLL cannot be overwritten while Revit is running.
-   ```
-   Ask: `Ready to deploy? (y/n)` — stop if user says no.
+2. **Check if Revit is running**: Run `tasklist | grep -i revit` to detect Revit process.
+   - **Revit NOT running** → Skip warning, proceed directly to step 3.
+   - **Revit IS running** → Display:
+     ```
+     ⚠️  Revit is currently running. The DLL cannot be overwritten while Revit is open.
+         Please close Revit before continuing.
+     ```
+     Ask: `Ready to deploy? (y/n)` — stop if user says no.
 
 3. **Create target directory** if it doesn't exist:
    ```powershell
@@ -55,7 +58,8 @@ Then stop.
 
 4. **Copy DLL**:
    ```powershell
-   Copy-Item "MCP\bin\Release\RevitMCP.dll" "$env:APPDATA\Autodesk\Revit\Addins\{version}\RevitMCP\" -Force
+   $yy = "{version}".Substring(2)  # e.g. "2024" → "24"
+   Copy-Item "MCP\bin\Release.R$yy\RevitMCP.dll" "$env:APPDATA\Autodesk\Revit\Addins\{version}\RevitMCP\" -Force
    ```
 
 5. **Verify**: Confirm the file exists at the target path and show its timestamp.

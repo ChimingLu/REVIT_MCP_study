@@ -1,5 +1,18 @@
 ---
-description: 從屬視圖依網格裁剪批次建立流程
+name: dependent-view-crop-workflow
+description: "從屬視圖批次裁剪：依網格線為邊界，批次建立從屬視圖並設定裁剪範圍。適用於大型專案分區出圖。當使用者提到從屬視圖、dependent view、分區出圖、網格裁剪、視圖分割時觸發。"
+metadata:
+  version: "1.0"
+  updated: "2026-04-02"
+  created: "2026-03-16"
+  contributors:
+    - "unknown"
+  references: []  # TODO: 月小聚補法規條號或外部依據
+  related: []  # TODO: 月小聚補相關 domain（檔名）
+  referenced_by:
+    - dependent-view-crop
+    - sheet-management
+  tags: [從屬視圖, dependent view, 網格裁剪, 分區出圖, batch crop]
 ---
 
 # 從屬視圖依網格裁剪批次建立流程 (Dependent View Crop by Grids)
@@ -11,7 +24,8 @@ description: 從屬視圖依網格裁剪批次建立流程
 1. **維持從屬關係**：建立出來的視圖為從屬視圖，繼承母視圖比例與圖面設定。
 2. **網格容錯計算**：若某軸向（X 或 Y）缺一條網格線，以指定的「偏移距離 (Offset)」推算出一個方框邊界。
 3. **流水號命名**：自動偵測現有從屬視圖，依序建立如 `[母視圖名稱]-1`, `[母視圖名稱]-2` 的命名。
-4. **批次執行能力**：可一次針對整棟樓層 (例如 1F~10F 共 10 張母圖) 的相同網格區域，批次產生對應的從屬視圖。
+4. **批次執行能力**：可一次針對多個母視圖（如 1F~10F）的相同網格區域，批次產生對應的從屬視圖。
+5. **極致效能**：透過批次指令將原本數分鐘的任務縮短至數秒內。
 
 ---
 
@@ -40,16 +54,15 @@ description: 從屬視圖依網格裁剪批次建立流程
      - `offset_mm`: number (往外偏移的公釐尺寸)
    - **輸出結果**: 回傳 `{ min: {x,y,z}, max: {x,y,z} }` 這個純資料的 BoundingBox 結構。
 
-2. **`Tool: RevitMCP_CreateDependentViews`**
+3. **`Tool: RevitMCP_CreateGridCroppedViewsBatch` (推薦使用)**
    - **輸入參數**:
-     - `parent_view_ids`: number[] (多張母視圖的 ElementId 清單)
-     - `bounding_box`: { min, max }
-   - **執行動作**: (Transaction)
-     - 對每一張母視圖執行 `View.Duplicate(ViewDuplicateOption.AsDependent)`
-     - 取得目前母視圖已有的從屬視圖數量，決定下一個流水號。
-     - 重新命名為 `[母視圖名稱]-N`
-     - 將 BoundingBox 賦予給從屬視圖的 `CropBox`，並設定 `CropBoxActive = true`
-   - **輸出結果**: 建立的從屬視圖 ID 與名稱對照表。
+     - `parentViewIds`: number[]
+     - `x_grid_names`: string[]
+     - `y_grid_names`: string[]
+     - `offset_mm`: number
+   - **執行動作**: 
+     - 在單一 Transaction 中完成所有網格區間的計算、視圖複製、命名與裁剪。
+     - **效能優勢**: 處理 16 個視圖僅需 ~2.5 秒。
 
 ---
 

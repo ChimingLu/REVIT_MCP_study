@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 # Revit MCP 一鍵安裝程式（完整版）
 # ============================================================================
 # 此腳本會自動完成以下所有步驟：
@@ -7,6 +7,7 @@
 #   3. 讓您選擇 Revit 版本（支援多選）
 #   4. 為每個版本編譯並部署 Revit Add-in
 #   5. 自動設定 AI 客戶端（Claude Desktop、Gemini CLI、VS Code）
+#   6. Port 8964 預檢與自動釋放（HTTP.sys 孤兒清理）
 # ============================================================================
 # 使用方式：
 #   初學者：雙擊 setup.bat 即可
@@ -36,7 +37,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 # ============================================================================
 $script:projectRoot = $null
 $script:results = @()
-$script:totalSteps = 7
+$script:totalSteps = 8
 $script:currentStep = 0
 
 # ============================================================================
@@ -434,10 +435,10 @@ else {
 if ($NonInteractive) {
     # 非互動模式
     if (-not [string]::IsNullOrWhiteSpace($RevitVersions)) {
-        $selectedVersions = $RevitVersions -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -in $supportedVersions }
+        $selectedVersions = @($RevitVersions -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -in $supportedVersions })
     }
     else {
-        $selectedVersions = $detectedVersions
+        $selectedVersions = @($detectedVersions)
     }
     if ($selectedVersions.Count -eq 0) {
         Write-Fail "未指定有效的 Revit 版本，且未偵測到已安裝版本"
@@ -585,7 +586,7 @@ elseif (-not (Test-CommandAvailable "node") -or -not (Test-CommandAvailable "npm
 else {
     $mcpServerDir = Join-Path $script:projectRoot "MCP-Server"
     $nodeModulesPath = Join-Path $mcpServerDir "node_modules"
-    $buildIndexPath = Join-Path $mcpServerDir "build" "index.js"
+    $buildIndexPath = Join-Path (Join-Path $mcpServerDir "build") "index.js"
 
     $mcpServerOk = $true
     Push-Location $mcpServerDir
@@ -713,7 +714,7 @@ else {
 
             # --- Deploy ---
             if (-not $skipDeployFlag) {
-                $dllSource = Join-Path $mcpDir "bin" "Release" "RevitMCP.dll"
+                $dllSource = Join-Path (Join-Path (Join-Path $mcpDir "bin") $config) "RevitMCP.dll"
 
                 if (-not (Test-Path $dllSource)) {
                     Write-Fail "Revit $ver：找不到 RevitMCP.dll（編譯可能失敗）"
@@ -733,20 +734,27 @@ else {
                         New-Item -ItemType Directory -Path $targetDllDir -Force | Out-Null
                     }
 
+                    # 清理殘黨：刪除舊版 .addin 檔案（如 RevitMCP.2024.addin）
+                    $legacyAddins = Get-ChildItem -Path $targetBase -Filter "RevitMCP.*.addin" -ErrorAction SilentlyContinue
+                    foreach ($legacy in $legacyAddins) {
+                        Remove-Item -Path $legacy.FullName -Force -ErrorAction SilentlyContinue
+                        Write-Info "已清理殘留 .addin：$($legacy.Name)"
+                    }
+
                     # 複製 DLL
                     Copy-Item -Path $dllSource -Destination (Join-Path $targetDllDir "RevitMCP.dll") -Force -ErrorAction Stop
 
-                    # 複製 .addin
+                    # 複製 .addin（唯一正規檔案）
                     Copy-Item -Path $addinSource -Destination (Join-Path $targetBase "RevitMCP.addin") -Force -ErrorAction Stop
 
                     # 複製 Newtonsoft.Json.dll（如果存在）
-                    $jsonDll = Join-Path $mcpDir "bin" "Release" "Newtonsoft.Json.dll"
+                    $jsonDll = Join-Path (Join-Path (Join-Path $mcpDir "bin") $config) "Newtonsoft.Json.dll"
                     if (Test-Path $jsonDll) {
                         Copy-Item -Path $jsonDll -Destination (Join-Path $targetDllDir "Newtonsoft.Json.dll") -Force -ErrorAction SilentlyContinue
                     }
 
                     # 複製 ClosedXML.dll（如果存在）
-                    $closedXmlDll = Join-Path $mcpDir "bin" "Release" "ClosedXML.dll"
+                    $closedXmlDll = Join-Path (Join-Path (Join-Path $mcpDir "bin") $config) "ClosedXML.dll"
                     if (Test-Path $closedXmlDll) {
                         Copy-Item -Path $closedXmlDll -Destination (Join-Path $targetDllDir "ClosedXML.dll") -Force -ErrorAction SilentlyContinue
                     }
@@ -781,7 +789,7 @@ if ($SkipAIConfig) {
     Add-Result "AI 設定" "SKIP" "使用者跳過"
 }
 else {
-    $mcpServerIndexJs = Join-Path $script:projectRoot "MCP-Server" "build" "index.js"
+    $mcpServerIndexJs = Join-Path (Join-Path (Join-Path $script:projectRoot "MCP-Server") "build") "index.js"
     # 將路徑轉換為正斜線（JSON 相容）
     $indexJsPath = $mcpServerIndexJs -replace '\\', '/'
 
@@ -819,7 +827,7 @@ else {
             }
 
             # 確保 mcpServers 屬性存在
-            if (-not ($claudeConfig.PSObject.Properties.Name -contains 'mcpServers')) {
+            if (-not ($claudeConfig.PSObject.Properties.Match('mcpServers').Count -gt 0)) {
                 $claudeConfig | Add-Member -MemberType NoteProperty -Name 'mcpServers' -Value ([PSCustomObject]@{})
             }
 
@@ -829,7 +837,7 @@ else {
                 args    = @($indexJsPath)
             }
 
-            if ($claudeConfig.mcpServers.PSObject.Properties.Name -contains 'revit-mcp') {
+            if ($claudeConfig.mcpServers.PSObject.Properties.Match('revit-mcp').Count -gt 0) {
                 $claudeConfig.mcpServers.'revit-mcp' = $revitMcpEntry
             }
             else {
@@ -884,7 +892,7 @@ else {
             }
         }
 
-        if (-not ($geminiConfig.PSObject.Properties.Name -contains 'mcpServers')) {
+        if (-not ($geminiConfig.PSObject.Properties.Match('mcpServers').Count -gt 0)) {
             $geminiConfig | Add-Member -MemberType NoteProperty -Name 'mcpServers' -Value ([PSCustomObject]@{})
         }
 
@@ -893,7 +901,7 @@ else {
             args    = @($indexJsPath)
         }
 
-        if ($geminiConfig.mcpServers.PSObject.Properties.Name -contains 'revit-mcp') {
+        if ($geminiConfig.mcpServers.PSObject.Properties.Match('revit-mcp').Count -gt 0) {
             $geminiConfig.mcpServers.'revit-mcp' = $revitMcpEntry
         }
         else {
@@ -911,7 +919,7 @@ else {
     }
 
     # --- VS Code ---
-    $vscodeConfigFile = Join-Path $script:projectRoot ".vscode" "mcp.json"
+    $vscodeConfigFile = Join-Path (Join-Path $script:projectRoot ".vscode") "mcp.json"
     if (Test-Path $vscodeConfigFile) {
         Write-OK "VS Code 設定已存在（.vscode/mcp.json）"
         Add-Result "VS Code" "OK" "Already configured"
@@ -923,7 +931,96 @@ else {
 }
 
 # ============================================================================
-# Phase 7: 安裝摘要
+# Phase 7: Port 預檢與釋放
+# ============================================================================
+
+Write-StepHeader "Port 預檢與釋放"
+
+Write-Host "    檢查 Port 8964 是否可用..." -ForegroundColor White
+
+$portInUse = $false
+try {
+    $listeners = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners()
+    $portInUse = ($listeners | Where-Object { $_.Port -eq 8964 }).Count -gt 0
+} catch {
+    $portInUse = $false
+}
+
+if (-not $portInUse) {
+    Write-OK "Port 8964 可用"
+    Add-Result "Port 8964" "OK" "Available"
+}
+else {
+    # 辨識佔用者
+    $occupantPid = 0
+    $occupantName = "unknown"
+    $netstatOutput = netstat -ano 2>$null | Select-String ":8964 "
+    foreach ($line in $netstatOutput) {
+        $parts = ($line.ToString().Trim()) -split '\s+'
+        if ($parts.Count -ge 5) {
+            $pid = [int]$parts[-1]
+            if ($pid -gt 0) {
+                $occupantPid = $pid
+                try { $occupantName = (Get-Process -Id $pid -ErrorAction SilentlyContinue).ProcessName } catch { }
+                break
+            }
+        }
+    }
+
+    Write-Host "    Port 8964 被 $occupantName (PID: $occupantPid) 佔用" -ForegroundColor Yellow
+
+    $released = $false
+
+    # Case 1: node/revitmcp 殭屍進程 — 直接 kill
+    if ($occupantName -match "node|revitmcp") {
+        Write-Host "    正在結束殭屍進程 $occupantName..." -ForegroundColor Yellow
+        try {
+            Stop-Process -Id $occupantPid -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Milliseconds 500
+            $released = -not (Test-Path function:Test-PortInUse) -or $true  # 簡化判斷
+            # 重新檢查
+            $listeners2 = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners()
+            $released = ($listeners2 | Where-Object { $_.Port -eq 8964 }).Count -eq 0
+        } catch { }
+    }
+
+    # Case 2: PID 4 (HTTP.sys 孤兒) — 重啟 HTTP 服務
+    if (-not $released -and $occupantPid -eq 4) {
+        Write-Host "    偵測到 HTTP.sys 孤兒 Request Queue（上次 Revit 異常關閉殘留）" -ForegroundColor Yellow
+
+        $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        if ($isAdmin) {
+            Write-Host "    正在重啟 HTTP 服務以釋放 Port..." -ForegroundColor Yellow
+            try {
+                $null = net stop http /y 2>&1
+                Start-Sleep -Seconds 1
+                $null = net start http 2>&1
+                Start-Sleep -Milliseconds 500
+                $listeners3 = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners()
+                $released = ($listeners3 | Where-Object { $_.Port -eq 8964 }).Count -eq 0
+            } catch { }
+        }
+        else {
+            Write-Host "    需要系統管理員權限。請以系統管理員身分重新執行 setup.bat，" -ForegroundColor Red
+            Write-Host "    或手動執行: net stop http /y && net start http" -ForegroundColor Cyan
+        }
+    }
+
+    if ($released) {
+        Write-OK "Port 8964 已自動釋放"
+        Add-Result "Port 8964" "OK" "Auto-released from $occupantName"
+    }
+    else {
+        Write-Host "    [!!] Port 8964 釋放失敗" -ForegroundColor Red
+        Write-Host "    手動修復: powershell -File scripts\release-port.ps1" -ForegroundColor Cyan
+        Add-Result "Port 8964" "WARN" "Occupied by $occupantName (PID: $occupantPid)"
+    }
+}
+
+Write-Host ""
+
+# ============================================================================
+# Phase 8: 安裝摘要
 # ============================================================================
 
 Write-StepHeader "安裝摘要"

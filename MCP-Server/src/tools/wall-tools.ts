@@ -88,6 +88,18 @@ export const wallTools: Tool[] = [
         },
     },
     {
+        name: "create_corridor_dimension",
+        description: "走廊寬度標註 — 自動偵測房間邊界的平行牆對，建立精確的牆到牆尺寸標註。回傳每個區段的實測寬度與合規判定。",
+        inputSchema: {
+            type: "object",
+            properties: {
+                roomId: { type: "number", description: "走廊房間的 Element ID" },
+                viewId: { type: "number", description: "要建立標註的平面視圖 ID" },
+            },
+            required: ["roomId", "viewId"],
+        },
+    },
+    {
         name: "query_walls_by_location",
         description: "查詢指定座標附近的牆體，回傳牆厚度、位置線與牆面座標。",
         inputSchema: {
@@ -167,5 +179,38 @@ export const wallTools: Tool[] = [
             },
             required: ["x", "y", "furnitureType"],
         },
+    },
+    {
+        name: "get_wall_types",
+        description: "取得專案中所有可用的牆類型，包含名稱和 Element ID。",
+        inputSchema: {
+            type: "object",
+            properties: {
+                search: { type: "string", description: "關鍵字篩選（選填）" },
+            },
+        },
+    },
+    {
+        name: "change_element_type",
+        description: "變更 Revit 元素的類型（例如將牆從 Type A 改為 Type B）。",
+        inputSchema: {
+            type: "object",
+            properties: {
+                elementId: { type: "number", description: "元素 ID" },
+                elementIds: { type: "array", items: { type: "number" }, description: "元素 ID 列表（用於批量變更）" },
+                typeId: { type: "number", description: "目標類型的 Element ID" },
+            },
+            required: ["typeId"],
+        },
+    },
+    {
+        name: "get_line_styles",
+        description: "取得目前專案中可用的線型 (GraphicsStyles)，例如：虛線、細線等。",
+        inputSchema: { type: "object", properties: {} },
+    },
+    {
+        name: "trace_stair_geometry",
+        description: "自動分析視圖中的樓梯幾何，偵測被牆、版等物件遮擋的邊緣線段，回傳座標以供後續繪製虛線。",
+        inputSchema: { type: "object", properties: {} },
     },
 ];

@@ -165,7 +165,11 @@ namespace RevitMCP.Core
                     case "create_dimension":
                         result = CreateDimension(parameters);
                         break;
-                    
+
+                    case "create_corridor_dimension":
+                        result = CreateCorridorDimension(parameters);
+                        break;
+
                     case "query_walls_by_location":
                         result = QueryWallsByLocation(parameters);
                         break;
@@ -293,6 +297,85 @@ namespace RevitMCP.Core
                         break;
                     case "check_stair_headroom":
                         result = CheckStairHeadroom(parameters);
+                        break;
+                    // === 圖紙管理模組 ===
+                    case "get_all_sheets":
+                        result = GetAllSheets();
+                        break;
+                    case "get_titleblocks":
+                        result = GetTitleBlocks();
+                        break;
+                    case "create_sheets":
+                        result = CreateSheets(parameters);
+                        break;
+                    case "auto_renumber_sheets":
+                        result = AutoRenumberSheets(parameters);
+                        break;
+                    case "get_viewport_map":
+                        result = GetViewportMap();
+                        break;
+
+                    // === 詳圖元件模組 ===
+                    case "get_detail_components":
+                        result = GetDetailComponents(parameters);
+                        break;
+                    case "create_detail_component_type":
+                        result = CreateDetailComponentType(parameters);
+                        break;
+                    case "sync_detail_component_numbers":
+                        result = SyncDetailComponentNumbers();
+                        break;
+                    case "list_family_symbols":
+                        result = ListFamilySymbols(parameters);
+                        break;
+
+                    // === 尺寸標註模組 ===
+                    case "create_dimension_by_ray":
+                        result = CreateDimensionByRay(parameters);
+                        break;
+                    case "create_dimension_by_bounding_box":
+                        result = CreateDimensionByBoundingBox(parameters);
+                        break;
+
+                    // === 從屬視圖模組 ===
+                    case "calculate_grid_bounds":
+                        result = CalculateGridBounds(parameters);
+                        break;
+                    case "create_dependent_views":
+                        result = CreateDependentViews(parameters);
+                        break;
+
+                    // === 牆類型與元素管理模組 ===
+                    case "get_wall_types":
+                        result = GetWallTypes(parameters);
+                        break;
+                    case "change_element_type":
+                        result = ChangeElementType(parameters);
+                        break;
+                    case "get_line_styles":
+                        result = GetLineStyles();
+                        break;
+                    case "trace_stair_geometry":
+                        result = TraceStairGeometry(parameters);
+                        break;
+
+                    case "get_linked_models":
+                        result = GetLinkedModels();
+                        break;
+                    case "query_linked_elements":
+                        result = QueryLinkedElements(parameters);
+                        break;
+                    case "get_element_geometry":
+                        result = GetElementGeometry(parameters);
+                        break;
+                    case "detect_clashes":
+                        result = DetectClashes(parameters);
+                        break;
+                    case "colorize_clashes":
+                        result = ColorizeClashes(parameters);
+                        break;
+                    case "export_clash_report":
+                        result = ExportClashReport(parameters);
                         break;
 
                     default:
@@ -1242,14 +1325,15 @@ namespace RevitMCP.Core
                             Element element = doc.GetElement(segment.ElementId);
                             if (element is Wall wall)
                             {
-                                IList<ElementId> insertIds = wall.FindInserts(true, false, false, false);
+                                IList<ElementId> insertIds = wall.FindInserts(true, true, false, false);
                                 foreach (ElementId insertId in insertIds)
                                 {
                                     if (globalProcessedIds.Contains(insertId.GetIdValue())) continue;
 
                                     Element insert = doc.GetElement(insertId);
                                     if (insert is FamilyInstance fi &&
-                                        (fi.Category.Id.GetIdValue() == (IdType)BuiltInCategory.OST_Windows))
+                                        (fi.Category.Id.GetIdValue() == (IdType)BuiltInCategory.OST_Windows ||
+                                         fi.Category.Id.GetIdValue() == (IdType)BuiltInCategory.OST_Doors))
                                     {
                                         bool belongsToRoom = false;
 
@@ -1752,6 +1836,190 @@ namespace RevitMCP.Core
         }
 
         /// <summary>
+        /// 走廊寬度標註 — 使用房間邊界線段找平行牆對，建立精確的牆到牆標註
+        /// </summary>
+        private object CreateCorridorDimension(JObject parameters)
+        {
+            Document doc = _uiApp.ActiveUIDocument.Document;
+            IdType roomId = parameters["roomId"]?.Value<IdType>() ?? 0;
+            IdType viewId = parameters["viewId"]?.Value<IdType>() ?? 0;
+
+            Room room = doc.GetElement(new ElementId(roomId)) as Room;
+            if (room == null) throw new Exception($"找不到房間 ID: {roomId}");
+
+            View view = doc.GetElement(new ElementId(viewId)) as View;
+            if (view == null) throw new Exception($"找不到視圖 ID: {viewId}");
+
+            // 取得房間邊界線段（使用完成面位置）
+            var bOptions = new SpatialElementBoundaryOptions();
+            bOptions.SpatialElementBoundaryLocation = SpatialElementBoundaryLocation.Finish;
+            var segmentLoops = room.GetBoundarySegments(bOptions);
+
+            if (segmentLoops == null || segmentLoops.Count == 0)
+                throw new Exception("房間無邊界線段");
+
+            // 從第一個迴路提取直線段
+            var lines = new List<Line>();
+            foreach (var seg in segmentLoops[0])
+            {
+                var curve = seg.GetCurve();
+                if (curve is Line line && line.Length > 0.3) // > ~90mm
+                    lines.Add(line);
+            }
+
+            if (lines.Count < 2)
+                throw new Exception($"邊界線段不足（僅 {lines.Count} 條直線）");
+
+            // Segment-First 演算法：找平行牆對
+            var pairs = new List<int[]>();
+            var pairWidths = new List<double>();
+            var pairAvgLens = new List<double>();
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                XYZ dir1 = lines[i].Direction.Normalize();
+                double len1 = lines[i].Length;
+
+                for (int j = i + 1; j < lines.Count; j++)
+                {
+                    XYZ dir2 = lines[j].Direction.Normalize();
+                    double len2 = lines[j].Length;
+
+                    // 平行檢查（容差 5°）
+                    double dot = Math.Abs(dir1.DotProduct(dir2));
+                    if (dot < 0.996) continue;
+
+                    // 計算垂直距離
+                    XYZ perp = new XYZ(-dir1.Y, dir1.X, 0).Normalize();
+                    XYZ diff = lines[j].GetEndPoint(0).Subtract(lines[i].GetEndPoint(0));
+                    double dist = Math.Abs(diff.DotProduct(perp));
+
+                    // 排除共線（同一側牆壁 < 100mm）
+                    if (dist < 100.0 / 304.8) continue;
+
+                    // 長寬比過濾（走廊特徵：長 > 寬）
+                    double avgLen = (len1 + len2) / 2;
+                    if (avgLen < dist) continue;
+
+                    // 投影重疊檢查
+                    double s1a = lines[i].GetEndPoint(0).DotProduct(dir1);
+                    double s1b = lines[i].GetEndPoint(1).DotProduct(dir1);
+                    double s2a = lines[j].GetEndPoint(0).DotProduct(dir1);
+                    double s2b = lines[j].GetEndPoint(1).DotProduct(dir1);
+
+                    double min1 = Math.Min(s1a, s1b), max1 = Math.Max(s1a, s1b);
+                    double min2 = Math.Min(s2a, s2b), max2 = Math.Max(s2a, s2b);
+                    double oStart = Math.Max(min1, min2);
+                    double oEnd = Math.Min(max1, max2);
+                    if (oEnd <= oStart + 0.01) continue; // 無重疊
+
+                    pairs.Add(new[] { i, j });
+                    pairWidths.Add(dist);
+                    pairAvgLens.Add(avgLen);
+                }
+            }
+
+            if (pairs.Count == 0)
+                throw new Exception("找不到平行牆面對（可能不是走廊形狀）");
+
+            // 依平均長度降序排序（主要走廊壁優先）
+            var sorted = Enumerable.Range(0, pairs.Count)
+                .OrderByDescending(k => pairAvgLens[k])
+                .ToList();
+
+            // 建立標註
+            var measurements = new List<object>();
+            var widthValues = new List<double>();
+
+            using (Transaction trans = new Transaction(doc, "走廊寬度標註"))
+            {
+                trans.Start();
+
+                foreach (int k in sorted)
+                {
+                    var line1 = lines[pairs[k][0]];
+                    var line2 = lines[pairs[k][1]];
+                    XYZ dir = line1.Direction.Normalize();
+                    XYZ perp = new XYZ(-dir.Y, dir.X, 0).Normalize();
+
+                    // 投影重疊中點
+                    double s1a = line1.GetEndPoint(0).DotProduct(dir);
+                    double s1b = line1.GetEndPoint(1).DotProduct(dir);
+                    double s2a = line2.GetEndPoint(0).DotProduct(dir);
+                    double s2b = line2.GetEndPoint(1).DotProduct(dir);
+
+                    double min1 = Math.Min(s1a, s1b), max1 = Math.Max(s1a, s1b);
+                    double min2 = Math.Min(s2a, s2b), max2 = Math.Max(s2a, s2b);
+                    double oMid = (Math.Max(min1, min2) + Math.Min(max1, max2)) / 2;
+
+                    // 在重疊中點處取兩牆面上的點
+                    double t1 = (s1b != s1a) ? (oMid - s1a) / (s1b - s1a) : 0.5;
+                    double t2 = (s2b != s2a) ? (oMid - s2a) / (s2b - s2a) : 0.5;
+                    t1 = Math.Max(0.01, Math.Min(0.99, t1));
+                    t2 = Math.Max(0.01, Math.Min(0.99, t2));
+
+                    XYZ p1 = line1.Evaluate(t1, true);
+                    XYZ p2 = line2.Evaluate(t2, true);
+
+                    // 建立詳圖線作為標註參考（沿走廊方向的短線）
+                    double tickLen = 0.5; // ~150mm
+                    DetailCurve dc1 = doc.Create.NewDetailCurve(view,
+                        Line.CreateBound(p1.Subtract(dir.Multiply(tickLen)), p1.Add(dir.Multiply(tickLen))));
+                    DetailCurve dc2 = doc.Create.NewDetailCurve(view,
+                        Line.CreateBound(p2.Subtract(dir.Multiply(tickLen)), p2.Add(dir.Multiply(tickLen))));
+
+                    // 標註線（連接兩牆面，沿走廊方向偏移）
+                    double offsetFt = 1.5; // ~450mm 偏移
+                    Line dimLine = Line.CreateBound(
+                        p1.Add(dir.Multiply(offsetFt)),
+                        p2.Add(dir.Multiply(offsetFt)));
+
+                    ReferenceArray refArray = new ReferenceArray();
+                    refArray.Append(dc1.GeometryCurve.Reference);
+                    refArray.Append(dc2.GeometryCurve.Reference);
+
+                    Dimension dim = doc.Create.NewDimension(view, dimLine, refArray);
+
+                    double widthMm = dim.Value.HasValue ? dim.Value.Value * 304.8 : pairWidths[k] * 304.8;
+                    widthMm = Math.Round(widthMm, 0);
+                    widthValues.Add(widthMm);
+
+                    measurements.Add(new
+                    {
+                        SegmentIndex = measurements.Count + 1,
+                        Width = widthMm,
+                        Length = Math.Round(pairAvgLens[k] * 304.8, 0),
+                        DimensionId = dim.Id.GetIdValue(),
+                        Point1 = new { X = Math.Round(p1.X * 304.8, 0), Y = Math.Round(p1.Y * 304.8, 0) },
+                        Point2 = new { X = Math.Round(p2.X * 304.8, 0), Y = Math.Round(p2.Y * 304.8, 0) },
+                        Method = "boundary_accurate",
+                        Compliant_1600 = widthMm >= 1600,
+                        Compliant_1200 = widthMm >= 1200
+                    });
+                }
+
+                trans.Commit();
+            }
+
+            string roomName = room.get_Parameter(BuiltInParameter.ROOM_NAME)?.AsString() ?? "";
+            string roomNumber = room.get_Parameter(BuiltInParameter.ROOM_NUMBER)?.AsString() ?? "";
+            double minWidth = widthValues.Count > 0 ? widthValues.Min() : 0;
+
+            return new
+            {
+                RoomId = roomId,
+                RoomName = roomName,
+                RoomNumber = roomNumber,
+                Level = room.Level?.Name ?? "",
+                TotalSegments = measurements.Count,
+                MinWidth = minWidth,
+                AllPass_1600 = widthValues.All(w => w >= 1600),
+                AllPass_1200 = widthValues.All(w => w >= 1200),
+                Segments = measurements
+            };
+        }
+
+        /// <summary>
         /// 查詢指定位置附近的牆體
         /// </summary>
         private object QueryWallsByLocation(JObject parameters)
@@ -2080,12 +2348,17 @@ namespace RevitMCP.Core
         {
             if (string.IsNullOrEmpty(name)) return ElementId.InvalidElementId;
 
+            // 先用名稱比對
             foreach (Category cat in doc.Settings.Categories)
             {
-                if (cat.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || 
-                    cat.BuiltInCategory.ToString().Equals("OST_" + name, StringComparison.OrdinalIgnoreCase) ||
-                    cat.BuiltInCategory.ToString().Equals(name, StringComparison.OrdinalIgnoreCase))
+                if (cat.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
                     return cat.Id;
+            }
+            // 再嘗試用 BuiltInCategory enum 比對（相容 Revit 2022）
+            BuiltInCategory bic;
+            if (Enum.TryParse("OST_" + name, true, out bic) || Enum.TryParse(name, true, out bic))
+            {
+                return new ElementId(bic);
             }
             return ElementId.InvalidElementId;
         }
@@ -2108,10 +2381,23 @@ namespace RevitMCP.Core
                     .Select(g => {
                         ElementId catId = new ElementId(g.Key);
                         Category cat = Category.GetCategory(doc, catId);
-                        return new { 
+                        string internalName = "Unknown";
+                        if (cat != null)
+                        {
+                            try
+                            {
+                                var bicVal = (BuiltInCategory)(int)(long)g.Key;
+                                if (Enum.IsDefined(typeof(BuiltInCategory), bicVal))
+                                    internalName = bicVal.ToString().Replace("OST_", "");
+                                else
+                                    internalName = cat.Name;
+                            }
+                            catch { internalName = cat.Name; }
+                        }
+                        return new {
                             Name = cat?.Name ?? "未知品類",
-                            InternalName = cat?.BuiltInCategory.ToString().Replace("OST_", "") ?? "Unknown",
-                            Count = g.Count() 
+                            InternalName = internalName,
+                            Count = g.Count()
                         };
                     })
                     .OrderByDescending(c => c.Count)
@@ -3270,6 +3556,43 @@ namespace RevitMCP.Core
                     Message = $"成功在 {pipe.Name} 安裝 {symbol.Name}"
                 };
             }
+        }
+
+        #endregion
+
+        #region Clash Detection (MEP vs CSA)
+
+        private object GetLinkedModels()
+        {
+            return new LinkedModelHelper(_uiApp).GetLinkedModels();
+        }
+
+        private object QueryLinkedElements(JObject parameters)
+        {
+            return new LinkedModelHelper(_uiApp).QueryLinkedElements(parameters);
+        }
+
+        private object GetElementGeometry(JObject parameters)
+        {
+            return new LinkedModelHelper(_uiApp).GetElementGeometry(parameters);
+        }
+
+        private object DetectClashes(JObject parameters)
+        {
+            var linkHelper = new LinkedModelHelper(_uiApp);
+            return new ClashDetector(_uiApp, linkHelper).DetectClashes(parameters);
+        }
+
+        private object ColorizeClashes(JObject parameters)
+        {
+            var linkHelper = new LinkedModelHelper(_uiApp);
+            return new ClashDetector(_uiApp, linkHelper).ColorizeClashes(parameters);
+        }
+
+        private object ExportClashReport(JObject parameters)
+        {
+            var linkHelper = new LinkedModelHelper(_uiApp);
+            return new ClashDetector(_uiApp, linkHelper).ExportClashReport(parameters);
         }
 
         #endregion
