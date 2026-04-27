@@ -10,6 +10,7 @@
  */
 
 import { WebSocket } from 'ws';
+import { execFileSync } from 'child_process';
 
 // CLI args: --revit <year>  --port <num>
 const args = process.argv.slice(2);
@@ -22,6 +23,17 @@ const TIMEOUT_MS = 5000;
 
 let passed = 0;
 let failed = 0;
+
+function detectRevitVersionFromProcess() {
+    if (process.platform !== 'win32') return null;
+
+    try {
+        const script = "$p = Get-Process Revit -ErrorAction SilentlyContinue | Select-Object -First 1; if ($null -eq $p) { exit 1 }; $path = $p.Path; if ($path -match 'Revit ([0-9]{4})') { Write-Output $matches[1]; exit 0 }; $fv = (Get-Item $path).VersionInfo.FileVersion; if ($fv -match '^([0-9]{2})\\.') { Write-Output ('20' + $matches[1]); exit 0 }; exit 1";
+        return execFileSync('powershell', ['-NoProfile', '-Command', script], { encoding: 'utf8' }).trim() || null;
+    } catch {
+        return null;
+    }
+}
 
 function sendCmd(ws, name, params, id) {
     return new Promise((resolve, reject) => {
@@ -50,9 +62,13 @@ function ok(label, condition, detail) {
 }
 
 async function run() {
+    const detectedYear = revitYear === 'unknown' || revitYear === 'current'
+        ? detectRevitVersionFromProcess()
+        : revitYear;
+
     console.log('═══════════════════════════════════════');
     console.log('  RevitMCP Smoke Test');
-    console.log(`  Revit: ${revitYear}`);
+    console.log(`  Revit: ${detectedYear ?? revitYear}`);
     console.log(`  Target: ${WS_URL}`);
     console.log('═══════════════════════════════════════\n');
 
