@@ -113,6 +113,14 @@ namespace RevitMCP.Core
                     case "list_seeds":
                         result = ListSeeds(parameters);
                         break;
+
+                    case "list_dimension_types":
+                        result = ListDimensionTypes(parameters);
+                        break;
+
+                    case "list_legend_views":
+                        result = ListLegendViews(parameters);
+                        break;
                     
                     case "get_all_grids":
                         result = GetAllGrids();
@@ -396,6 +404,17 @@ namespace RevitMCP.Core
                         break;
                     case "create_columns_from_dwg":
                         result = DwgColumnExecutor.CreateColumnsFromDwg(_uiApp.ActiveUIDocument.Document, parameters);
+                        break;
+
+                    // === DWG 圖層批次建樑模組 ===
+                    case "get_dwg_beam_layers":
+                        result = DwgBeamExecutor.GetDwgBeamLayers(_uiApp.ActiveUIDocument.Document);
+                        break;
+                    case "preview_dwg_beams":
+                        result = DwgBeamExecutor.PreviewDwgBeams(_uiApp.ActiveUIDocument.Document, parameters);
+                        break;
+                    case "create_beams_from_dwg":
+                        result = DwgBeamExecutor.CreateBeamsFromDwg(_uiApp.ActiveUIDocument.Document, parameters);
                         break;
 
                     case "get_linked_models":
