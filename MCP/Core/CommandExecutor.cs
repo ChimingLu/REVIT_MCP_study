@@ -626,7 +626,17 @@ namespace RevitMCP.Core
                         break;
 #endif
 
-                    // === 施工架/隔間/門窗/RC填充 算量 + 圖案轉換 (PR #79/#81/#82, 作者 Jacky820507) ===
+                    // === 車道超高模組 (feat/ramp-superelevation, 作者 ChimingLu) ===
+                    case "get_floor_slab_shape":
+                        result = RampSuperelevationTool.GetSlabShape(_uiApp.ActiveUIDocument.Document, parameters);
+                        break;
+                    case "set_floor_vertex_offsets":
+                        result = RampSuperelevationTool.SetVertexOffsets(_uiApp.ActiveUIDocument.Document, parameters);
+                        break;
+                    case "apply_ramp_superelevation":
+                        result = RampSuperelevationTool.ApplySuperelevation(_uiApp.ActiveUIDocument.Document, parameters);
+                        break;
+
                     case "calculate_exterior_wall_scaffold_perimeter":
                         result = CalculateExteriorWallScaffoldPerimeter(parameters);
                         break;
