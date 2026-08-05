@@ -415,7 +415,11 @@ namespace RevitMCP.Core
                         }
 
                         XYZ currentBoxCenter = vp.GetBoxCenter();
+#if REVIT2022_OR_GREATER
                         XYZ currentLabelOffset = vp.LabelOffset ?? XYZ.Zero;
+#else
+                        XYZ currentLabelOffset = XYZ.Zero; // Revit 2021 不支援 LabelOffset
+#endif
 
                         // 取得 current label center (in sheet coords)
                         XYZ currentLabelCenter = null;
@@ -499,7 +503,11 @@ namespace RevitMCP.Core
 
                         if (!dryRun)
                         {
+#if REVIT2022_OR_GREATER
                             vp.LabelOffset = newLabelOffset;
+#else
+                            // Revit 2021 不支援 LabelOffset設定
+#endif
                         }
 
                         object oldCenterMm = currentLabelCenter != null

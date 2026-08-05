@@ -20,74 +20,73 @@ namespace RevitMCP
         {
             try
             {
-                // ????蝵桃恣?
+                // 初始化配置管理器
                 _ = ConfigManager.Instance;
                 _runtimeManager = new CoreRuntimeManager();
-                
-                // 撱箇? Core Reload ??ExternalEvent嚗?? Startup/UI ?瑁?蝺遣蝡?
+
+                // 建立 Core Reload 的 ExternalEvent（必須在 Startup/UI 執行緒建立）
                 _reloadEventHandler = new ReloadCoreEventHandler();
                 _reloadExternalEvent = ExternalEvent.Create(_reloadEventHandler);
 
-                // 閮???
-                Logger.Info("RevitMCP Plugin 甇???...");
+                // 記錄啟動
+                Logger.Info("RevitMCP Plugin 正在啟動...");
 
-                // 撱箇????Ｘ
+                // 建立功能區面板
                 RibbonPanel panel = application.CreateRibbonPanel("MCP Tools");
-                
+
                 string assemblyPath = Assembly.GetExecutingAssembly().Location;
 
-                // 1. MCP ?????? (Toggle)
+                // 1. MCP 服務切換按鈕 (Toggle)
                 PushButtonData toggleButtonData = new PushButtonData(
                     "MCPToggle",
-                    "MCP ??\n(????",
+                    "MCP 服務\n(開/關)",
                     assemblyPath,
                     "RevitMCP.Commands.ToggleServiceCommand");
-                toggleButtonData.ToolTip = "????甇?MCP WebSocket ??";
+                toggleButtonData.ToolTip = "啟動或停止 MCP WebSocket 服務";
                 panel.AddItem(toggleButtonData);
 
-                // 2. ???亥???
+                // 2. 開啟日誌按鈕
                 PushButtonData logButtonData = new PushButtonData(
                     "OpenLog",
-                    "??\n?亥?",
+                    "開啟\n日誌",
                     assemblyPath,
                     "RevitMCP.Commands.OpenLogCommand");
-                logButtonData.ToolTip = "?? MCP ?瑁??亥?";
+                logButtonData.ToolTip = "開啟 MCP 執行日誌";
                 panel.AddItem(logButtonData);
 
-                // 3. 閮剖???
+                // 3. 設定按鈕
                 PushButtonData settingsButtonData = new PushButtonData(
                     "MCPSettings",
-                    "MCP\n閮剖?",
+                    "MCP\n設定",
                     assemblyPath,
                     "RevitMCP.Commands.SettingsCommand");
-                settingsButtonData.ToolTip = "?? MCP 閮剖?閬?";
+                settingsButtonData.ToolTip = "開啟 MCP 設定視窗";
                 panel.AddItem(settingsButtonData);
 
-                // 4. Core ????
+                // 4. Core 重載按鈕（熱重載：不重啟 Revit）
                 PushButtonData reloadButtonData = new PushButtonData(
                     "ReloadCore",
-                    "Core\n??",
+                    "Core\n重載",
                     assemblyPath,
                     "RevitMCP.Commands.ReloadCoreCommand");
-                reloadButtonData.ToolTip = "?頛 RevitMCP.CoreRuntime.dll嚗??? Revit嚗?;
+                reloadButtonData.ToolTip = "重新載入 RevitMCP.CoreRuntime.dll（不重啟 Revit）";
                 panel.AddItem(reloadButtonData);
 
-                // 閮餃? Process ??箔?隞???Revit crash ??OnShutdown 銝?鋡怠?恬?
-                // 雿?ProcessExit 隞?璈?閫貊嚗Ⅱ靽?HttpListener 鋡恍??橘?
-                // ?踹? HTTP.sys 摮文? Request Queue 雿? port??                AppDomain.CurrentDomain.ProcessExit += (s, e) => EmergencyStopSocket();
+                // 註冊 Process 退出事件 — Revit crash 時 OnShutdown 不會被呼叫
+                AppDomain.CurrentDomain.ProcessExit += (s, e) => EmergencyStopSocket();
 
-                Logger.Info("RevitMCP Plugin 撌脫?????);
+                Logger.Info("RevitMCP Plugin 已成功載入");
 
-                TaskDialog.Show("RevitMCP", 
-                    "RevitMCP Plugin 撌脰??功n\n" +
-                    "隢??CP ?? (????????? AI ?批?");
-                
+                TaskDialog.Show("RevitMCP",
+                    "RevitMCP Plugin 已載入\n\n" +
+                    "請點擊「MCP 服務 (開/關)」按鈕來啟用 AI 控制功能");
+
                 return Result.Succeeded;
             }
             catch (Exception ex)
             {
-                Logger.Error("頛 MCP Tools 憭望?", ex);
-                TaskDialog.Show("?航炊", "頛 MCP Tools 憭望?: " + ex.Message);
+                Logger.Error("載入 MCP Tools 失敗", ex);
+                TaskDialog.Show("錯誤", "載入 MCP Tools 失敗: " + ex.Message);
                 return Result.Failed;
             }
         }
@@ -105,26 +104,19 @@ namespace RevitMCP
             }
         }
 
-        /// <summary>
-        /// 蝺仿???Socket ?????◤ OnShutdown ??ProcessExit ?澆嚗?        /// ?折??null check ?脫迫???瑁???        /// </summary>
         private static void EmergencyStopSocket()
         {
             try
             {
                 if (_runtimeManager != null)
-                {
                     _runtimeManager.Shutdown();
-                }
             }
             catch (Exception ex)
             {
-                Logger.Error($"EmergencyStopSocket failed: {ex.Message}");
+                Logger.Error("EmergencyStopSocket failed: " + ex.Message);
             }
         }
 
-        /// <summary>
-        /// ?? MCP ??
-        /// </summary>
         public static void StartMCPService(UIApplication uiApp)
         {
             try
@@ -134,7 +126,7 @@ namespace RevitMCP
 
                 if (_runtimeManager.IsRunning)
                 {
-                    TaskDialog.Show("MCP ??", "??撌脣?瑁?銝准?);
+                    TaskDialog.Show("MCP 服務", "服務已在執行中。");
                     return;
                 }
 
@@ -142,25 +134,20 @@ namespace RevitMCP
             }
             catch (Exception ex)
             {
-                TaskDialog.Show("?航炊", $"?? MCP ??憭望?: {ex.Message}");
+                TaskDialog.Show("錯誤", "啟動 MCP 服務失敗: " + ex.Message);
             }
         }
 
-        /// <summary>
-        /// ?迫 MCP ??
-        /// </summary>
         public static void StopMCPService()
         {
             try
             {
                 if (_runtimeManager != null)
-                {
                     _runtimeManager.StopService();
-                }
             }
             catch (Exception ex)
             {
-                TaskDialog.Show("?航炊", $"?迫 MCP ??憭望?: {ex.Message}");
+                TaskDialog.Show("錯誤", "停止 MCP 服務失敗: " + ex.Message);
             }
         }
 
@@ -168,29 +155,27 @@ namespace RevitMCP
         {
             try
             {
-                if (_uiApp == null)
-                {
-                    return false;
-                }
-
+                if (_uiApp == null) return false;
                 _runtimeManager.SetUIApplication(_uiApp);
                 _runtimeManager.ReloadCore();
                 return true;
             }
             catch (Exception ex)
             {
-                Logger.Error($"ReloadCore 憭望?: {ex.Message}", ex);
+                Logger.Error("ReloadCore 失敗: " + ex.Message, ex);
                 return false;
             }
         }
 
         /// <summary>
-        /// 敺??臬銵?摰?啗孛??Core Reload??        /// ?芸??ExternalEvent.Raise()嚗祕??ReloadCore() ??Revit UI ?瑁?蝺銵?        /// </summary>
+        /// 從背景執行緒安全地觸發 Core Reload。
+        /// 只呼叫 ExternalEvent.Raise()，實際 ReloadCore() 在 Revit UI 執行緒執行。
+        /// </summary>
         public static void RequestReloadCoreFromBackground()
         {
             if (_reloadExternalEvent == null)
             {
-                Logger.Error("ReloadExternalEvent 撠????);
+                Logger.Error("ReloadExternalEvent 尚未初始化");
                 return;
             }
             _reloadEventHandler.SetRuntimeManager(_runtimeManager, _uiApp);
@@ -199,44 +184,29 @@ namespace RevitMCP
 
         public static bool IsServiceConnected()
         {
-            try
-            {
-                return _runtimeManager != null && _runtimeManager.IsConnected;
-            }
-            catch
-            {
-                return false;
-            }
+            try { return _runtimeManager != null && _runtimeManager.IsConnected; }
+            catch { return false; }
         }
 
         public static bool IsServiceRunning()
         {
-            try
-            {
-                return _runtimeManager != null && _runtimeManager.IsRunning;
-            }
-            catch
-            {
-                return false;
-            }
+            try { return _runtimeManager != null && _runtimeManager.IsRunning; }
+            catch { return false; }
         }
 
         public static bool IsCoreLoaded()
         {
-            try
-            {
-                return _runtimeManager != null && _runtimeManager.IsLoaded;
-            }
-            catch
-            {
-                return false;
-            }
+            try { return _runtimeManager != null && _runtimeManager.IsLoaded; }
+            catch { return false; }
         }
+
+        // SocketService 屬性（相容性：保留給可能引用舊版的程式碼）
+        public static bool IsConnected => IsServiceConnected();
     }
 
     /// <summary>
     /// ExternalEvent handler for reloading CoreRuntime from a background thread.
-    /// Execute() runs on the Revit UI thread, which satisfies ExternalEvent.Create() requirements.
+    /// Execute() runs on the Revit UI thread.
     /// </summary>
     internal class ReloadCoreEventHandler : IExternalEventHandler
     {
@@ -256,11 +226,11 @@ namespace RevitMCP
                 if (_runtimeManager == null) return;
                 _runtimeManager.SetUIApplication(_uiApp ?? app);
                 _runtimeManager.ReloadCore();
-                Logger.Info("CoreRuntime ?梢?頛???ExternalEvent UI ?瑁?蝺?");
+                Logger.Info("CoreRuntime 熱重載完成（ExternalEvent UI 執行緒）");
             }
             catch (Exception ex)
             {
-                Logger.Error($"ReloadCoreEventHandler.Execute 憭望?: {ex.Message}", ex);
+                Logger.Error("ReloadCoreEventHandler.Execute 失敗: " + ex.Message, ex);
             }
         }
 

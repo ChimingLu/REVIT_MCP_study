@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
@@ -55,6 +55,7 @@ namespace RevitMCP.Core
             foreach (SlabShapeVertex v in editor.SlabShapeVertices)
             {
                 XYZ pt = v.Position;
+#if REVIT2022_OR_GREATER
                 vertices.Add(new
                 {
                     Index = v.VertexIndex,
@@ -64,6 +65,18 @@ namespace RevitMCP.Core
                     OffsetMm = Math.Round(v.CreaseDistanceFromFloorSurface * FeetToMm, 2),
                     Type = v.VertexType.ToString()
                 });
+#else
+                // Revit 2021 以下：VertexIndex / CreaseDistanceFromFloorSurface 不存在
+                vertices.Add(new
+                {
+                    Index = vertices.Count,  // 以枚舉順序作為替代索引
+                    X = Math.Round(pt.X * FeetToMm, 1),
+                    Y = Math.Round(pt.Y * FeetToMm, 1),
+                    Z = Math.Round(pt.Z * FeetToMm, 1),
+                    OffsetMm = 0.0,
+                    Type = v.VertexType.ToString()
+                });
+#endif
             }
 
             var creases = new List<object>();
@@ -72,7 +85,11 @@ namespace RevitMCP.Core
                 creases.Add(new
                 {
                     Type = c.CreaseType.ToString(),
+#if REVIT2022_OR_GREATER
                     IsNew = c.IsNewCrease
+#else
+                    IsNew = false
+#endif
                 });
             }
 
@@ -303,8 +320,15 @@ namespace RevitMCP.Core
         private static Dictionary<int, SlabShapeVertex> BuildVertexMap(SlabShapeEditor editor)
         {
             var map = new Dictionary<int, SlabShapeVertex>();
+#if REVIT2022_OR_GREATER
             foreach (SlabShapeVertex v in editor.SlabShapeVertices)
                 map[v.VertexIndex] = v;
+#else
+            // Revit 2021：VertexIndex 不存在，以枚舉順序作為索引
+            int idx = 0;
+            foreach (SlabShapeVertex v in editor.SlabShapeVertices)
+                map[idx++] = v;
+#endif
             return map;
         }
 

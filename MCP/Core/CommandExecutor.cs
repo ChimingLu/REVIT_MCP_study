@@ -931,7 +931,14 @@ namespace RevitMCP.Core
                 }
 
                 // 使用 Floor.Create (適用於 Revit 2022+)
+#if REVIT2022_OR_GREATER
                 Floor floor = Floor.Create(doc, new List<CurveLoop> { curveLoop }, floorType.Id, level.Id);
+#else
+                // Revit 2021 以下：使用舊式 NewFloor API
+                CurveArray curveArray = new CurveArray();
+                foreach (Curve c in curveLoop) curveArray.Append(c);
+                Floor floor = doc.Create.NewFloor(curveArray, floorType, level, false);
+#endif
 
                 trans.Commit();
 
@@ -3200,8 +3207,13 @@ namespace RevitMCP.Core
                         isNumeric = true;
                         double val = (p.StorageType == StorageType.Double) ? p.AsDouble() : p.AsInteger();
                         
-                        // 轉換為 mm (如果適用，Revit 2024 寫法)
+                        // 轉換為 mm (如果適用)
+#if REVIT2022_OR_GREATER
                         if (p.Definition.GetDataType() == SpecTypeId.Length) val *= 304.8;
+#else
+                        // Revit 2021: ParameterType 代替 SpecTypeId
+                        if (p.Definition.ParameterType == ParameterType.Length) val *= 304.8;
+#endif
                         
                         if (val < min) min = val;
                         if (val > max) max = val;

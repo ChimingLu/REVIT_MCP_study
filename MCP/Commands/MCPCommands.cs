@@ -8,7 +8,7 @@ using RevitMCP.Core;
 namespace RevitMCP.Commands
 {
     /// <summary>
-    /// ?? MCP ????隞?(????
+    /// 切換 MCP 服務狀態命令 (開/關)
     /// </summary>
     [Transaction(TransactionMode.Manual)]
     public class ToggleServiceCommand : IExternalCommand
@@ -20,19 +20,19 @@ namespace RevitMCP.Commands
         {
             try
             {
-                // 隞?IsServiceRunning() ?斗??????? IsServiceConnected嚗?                // 敺?鞈游???MCP Server 撌脤??嚗?撠??甈⊥???嚗?                bool isRunning = Application.IsServiceRunning();
+                bool isRunning = Application.IsServiceRunning();
 
                 if (isRunning)
                 {
-                    // 憒????瑁?銝哨???甇?                    Application.StopMCPService();
-                    Logger.Info("雿輻????甇?MCP ??");
-                    TaskDialog.Show("MCP ??", "? ??撌脣?甇?);
+                    Application.StopMCPService();
+                    Logger.Info("使用者手動停止 MCP 服務");
+                    TaskDialog.Show("MCP 服務", "服務已停止");
                 }
                 else
                 {
-                    // 憒????芸銵?????                    Logger.Info("雿輻??????MCP ??");
+                    Logger.Info("使用者手動啟動 MCP 服務");
                     Application.StartMCPService(commandData.Application);
-                    TaskDialog.Show("MCP ??", "? ??撌脣???);
+                    TaskDialog.Show("MCP 服務", "服務已啟動");
                 }
 
                 return Result.Succeeded;
@@ -40,14 +40,15 @@ namespace RevitMCP.Commands
             catch (Exception ex)
             {
                 message = ex.Message;
-                TaskDialog.Show("?航炊", "??????仃?? " + ex.Message);
+                TaskDialog.Show("錯誤", "切換服務狀態失敗: " + ex.Message);
                 return Result.Failed;
             }
         }
     }
 
     /// <summary>
-    /// ?頛 CoreRuntime ?賭誘嚗??? Revit嚗?    /// </summary>
+    /// 重新載入 CoreRuntime 命令（不重啟 Revit）
+    /// </summary>
     [Transaction(TransactionMode.Manual)]
     public class ReloadCoreCommand : IExternalCommand
     {
@@ -66,32 +67,31 @@ namespace RevitMCP.Commands
 
                 if (!ok)
                 {
-                    message = "Core ??憭望?";
-                    TaskDialog.Show("Core ??", "Core ??憭望?嚗?瑼Ｘ log??);
+                    message = "Core 重載失敗";
+                    TaskDialog.Show("Core 重載", "Core 重載失敗，請檢查 log。");
                     return Result.Failed;
                 }
 
                 string detail =
-                    $"Core 撌脤?頛??n\n" +
-                    $"????血歇頛: {(loadedBefore ? "?? : "??)}\n" +
-                    $"????血銵葉: {(runningBefore ? "?? : "??)}\n" +
-                    $"??敺?血銵葉: {(Application.IsServiceRunning() ? "?? : "??)}";
+                    "Core 已重載成功\n\n" +
+                    "重載前是否已載入: " + (loadedBefore ? "是" : "否") + "\n" +
+                    "重載前是否執行中: " + (runningBefore ? "是" : "否") + "\n" +
+                    "重載後是否執行中: " + (Application.IsServiceRunning() ? "是" : "否");
 
-                TaskDialog.Show("Core ??", detail);
+                TaskDialog.Show("Core 重載", detail);
                 return Result.Succeeded;
             }
             catch (Exception ex)
             {
                 message = ex.Message;
-                TaskDialog.Show("?航炊", "Core ??憭望?: " + ex.Message);
+                TaskDialog.Show("錯誤", "Core 重載失敗: " + ex.Message);
                 return Result.Failed;
             }
         }
     }
 
-
     /// <summary>
-    /// ??閮剖?閬??賭誘
+    /// 開啟設定視窗命令
     /// </summary>
     [Transaction(TransactionMode.Manual)]
     public class SettingsCommand : IExternalCommand
@@ -103,7 +103,7 @@ namespace RevitMCP.Commands
                 using (var client = new TcpClient())
                 {
                     var connectTask = client.ConnectAsync(host, port);
-                    return connectTask.Wait(TimeSpan.FromMilliseconds(300)) && client.Connected;
+                    return connectTask.Wait(System.TimeSpan.FromMilliseconds(300)) && client.Connected;
                 }
             }
             catch
@@ -127,39 +127,30 @@ namespace RevitMCP.Commands
 
                 string serviceStatus;
                 if (isConnected)
-                {
-                    serviceStatus = "?嚗歇???嚗?;
-                }
+                    serviceStatus = "啟用（已連線）";
                 else if (isRunning)
-                {
-                    serviceStatus = "?嚗????嚗?;
-                }
+                    serviceStatus = "啟用（待連線）";
                 else if (portListening)
-                {
-                    serviceStatus = "?嚗?撌脩?踝?";
-                }
+                    serviceStatus = "啟用（埠已監聽）";
                 else
-                {
-                    serviceStatus = "?";
-                }
+                    serviceStatus = "停用";
 
-                string info = $"?桀?閮剖?:\n\n" +
-                    $"銝餅?: {settings.Host}\n" +
-                    $"??: {settings.Port}\n" +
-                    $"????? {serviceStatus}\n" +
-                    $"Runtime.IsRunning: {(isRunning ? "?? : "??)}\n" +
-                    $"Runtime.IsConnected: {(isConnected ? "?? : "??)}\n" +
-                    $"Port??: {(portListening ? "?? : "??)}\n\n" +
-                    $"?蔭瑼?蝵?\n" +
-                    $"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\RevitMCP\\config.json";
-                
-                TaskDialog.Show("MCP 閮剖?", info);
+                string info =
+                    "目前設定:\n\n" +
+                    "主機: " + settings.Host + "\n" +
+                    "埠號: " + settings.Port + "\n" +
+                    "服務狀態: " + serviceStatus + "\n" +
+                    "Port 監聽: " + (portListening ? "是" : "否") + "\n\n" +
+                    "配置檔位置:\n" +
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\RevitMCP\\config.json";
+
+                TaskDialog.Show("MCP 設定", info);
                 return Result.Succeeded;
             }
             catch (Exception ex)
             {
                 message = ex.Message;
-                TaskDialog.Show("?航炊", "??閮剖?憭望?: " + ex.Message);
+                TaskDialog.Show("錯誤", "開啟設定失敗: " + ex.Message);
                 return Result.Failed;
             }
         }
