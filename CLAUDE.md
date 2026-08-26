@@ -33,8 +33,8 @@ These counts must be derived from source, not copied by memory.
 
 | Item | Current Count | Source of Truth |
 |---|---:|---|
-| Runtime MCP tools | 173 | `registerRevitTools()` from `MCP-Server/src/tools/index.ts` |
-| Domain SOP files | 76 | `domain/*.md` except `domain/README.md`, plus `domain/references/*.md` |
+| Runtime MCP tools | 176 | `registerRevitTools()` from `MCP-Server/src/tools/index.ts` |
+| Domain SOP files | 79 | `domain/*.md` except `domain/README.md`, plus `domain/references/*.md` |
 | Claude skills | 54 | `.claude/skills/*/SKILL.md` |
 
 When these numbers change, update `CLAUDE.md`, `README.md`, `README.zh-TW.md`, `docs/DOCUMENT_AUDIENCE_INVENTORY.md`, and any public site copy that makes grand-total claims. Then run `scripts/verify-qaqc.ps1 -SkipBuild -SkipDeploy`.
@@ -223,6 +223,28 @@ Use `get_active_view` before the dependent operation; if it is unavailable, call
 
 If the anchor tool times out, retry once. If it still fails, stop and report the limitation.
 
+### Subagent Delegation Boundaries
+
+**A constraint you are operating under does not propagate to a subagent unless you write it into the delegation message.** The subagent cannot see your system prompt, this file, or the earlier conversation. It sees only what you send.
+
+Before spawning or messaging a subagent, restate every constraint that applies to the work you are handing over. At minimum:
+
+- **What must not be written**, and to which files. Name the confidential source explicitly (e.g. "client documents under `<path>` are confidential; this repo is public — pass methods only, never client names, project codes, document titles, or client-specific figures").
+- **Which files the subagent may write**, and which it must not touch.
+- **Which tools it must not call** (git operations, Revit MCP, network).
+- **What to do when your instruction conflicts with what it observes** — it should trust the repository and say so.
+
+Two failure modes to guard against:
+
+1. **You quote the confidential material while describing the task.** A delegation message that says "record what we found in the client's unit inventory" is safe; one that names the client and the document is not. **The subagent will faithfully record whatever you put in front of it — that is its job.** If confidential content reaches it, the leak is already yours.
+2. **You assume a rule stated once in the session still governs.** It governs *you*, not the agent you spawn ten turns later.
+
+**Applies to every delegation path**: `Agent`, `SendMessage` to a resumed agent, `Workflow` scripts, and skills that run in a subagent.
+
+> **Incident (2026-08-12)**: A background recorder agent wrote client identifiers into a repo-tracked file across three commits, which were pushed to a public repository and remained reachable for roughly 21 hours. The confidentiality rule had been stated repeatedly in the session and was already written in `log/2026-08.md` — but it was never included in the messages sent to the agent, and the messages themselves named the client. The agent behaved correctly throughout; it later detected the violation itself and redacted the working file. Remediation required deleting the remote branch and filing a GitHub Support ticket for cache purging, neither of which restores the exposure window.
+>
+> **Rule that would have prevented it**: constraints travel with the work, not with the person who knows them.
+
 ## Domain vs Skill
 
 Domain files and skills have different responsibilities:
@@ -274,6 +296,7 @@ Read the matching file before applying a workflow or calculation.
 | MEP clash, CSA clash, penetration, beam penetration | `domain/mep-csa-clash-detection.md` |
 | MEP extension, pyRevit MEP guide | `domain/mep-extension-guide.md` |
 | mechanical settings, MEP settings, segments and sizes, duct size, pipe segment, 管徑目錄, 風管尺寸表, fitting angle, pipe slope, 尺寸增減, curate size, CNS 對帳 | `domain/mep-mechanical-settings.md` |
+| space demand matrix, 空間需求矩陣, MEP tag, 容量包絡, 機房面積反算, 前期容量, 基本設計容量, programming, SMP, concept design, Space 明細表, 逐空間通風檢核, FUM | `domain/mep-space-demand-matrix.md` |
 | parking numbering, auto parking numbering | `domain/parking-auto-numbering.md` |
 | parking clearance, vehicle clearance, 210cm | `domain/parking-clearance-check.md` |
 | parking count, parking space review | `domain/parking-space-review.md` |
@@ -308,6 +331,7 @@ Read the matching file before applying a workflow or calculation.
 | curtain wall elevation, 帷幕立面, 帷幕外立面, curtain elevation, create_curtain_wall_elevations | `domain/curtain-wall-elevation-workflow.md` |
 | opening candidate, 開孔候選, opening scan, 開孔預掃, scan_opening_candidates, 套管前置檢核, clearanceMm | `domain/mep-opening-candidate-scan.md` |
 | cad 圖塊放置, block 轉族群, 灑水頭建模, 閥件建模, point placement from CAD block, INSERT to FamilyInstance | `domain/cad-block-point-placement.md` |
+| space centroid, 空間中心點, 代表點, centroid, 批次放置, 逐室放置, 風口放置, air terminal, place_family_instances, get_space_centroid, IsPointInSpace | `domain/space-centroid-placement.md` |
 | pyRevit, UI API, 按鈕觸發, 觸發按鈕, PostableCommandId, PostCommand, Reload, ribbon 按鈕, 外掛 UI 命令 | `domain/tool-capability-boundary.md` |
 
 Meta and governance domain files:
@@ -317,6 +341,7 @@ Meta and governance domain files:
 | Domain catalog | `domain/README.md` |
 | QA/QC checklist | `domain/qa-checklist.md` |
 | Lessons learned | `domain/lessons.md` |
+| Anti-lessons (negative examples) | `domain/anti-lessons.md` |
 | Frontmatter standard | `domain/frontmatter-standard.md` |
 | Path maintenance QA | `domain/path-maintenance-qa.md` |
 | Session context guard | `domain/session-context-guard.md` |
