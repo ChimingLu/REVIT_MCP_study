@@ -737,7 +737,48 @@ $claimSites = @(
     @{ Pattern = '(\d+)\s*Skill\s*vs\b';                               Truth = $skillCount;         Label = 'N Skill vs ...' },
     @{ Pattern = 'Skill\s*=\s*編排（(\d+)\s*個';                        Truth = $skillCount;         Label = 'Skill = 編排（N 個' },
     @{ Pattern = 'SKILLS INDEX[^<]*<span[^>]*>(\d+)\s*個';              Truth = $skillCount;         Label = 'SKILLS INDEX eyebrow N 個' },
-    @{ Pattern = '>(\d+)\s+Skills</h4>';                                Truth = $skillCount;         Label = 'hub card N Skills' }
+    @{ Pattern = '>(\d+)\s+Skills</h4>';                                Truth = $skillCount;         Label = 'hub card N Skills' },
+
+    # --- Stage B-4 additions: expanded claim-site coverage ---
+    # Confirmed gate blind spot: existing patterns above are case-sensitive on literal
+    # "Domain"/"Skill"/"Tool" and only match a handful of exact phrase shapes, so lowercase
+    # variants (e.g. "79 個 domain SOP") and alternate shapes (e.g. "Skill（50・...)") slip
+    # through uncaught. Every pattern below was verified against the real scanned files with
+    # the same [regex] engine used by Find-ClaimMismatches before being added, specifically to
+    # confirm it only matches genuine grand-total claims and never a batch/contextual count
+    # (e.g. "2 個 domain 檔手動搬移收編" in contributors.html, or "3 個 Skill 引用"/"5 個 Skill
+    # 內" describing a subset, not the whole catalog) — those must NOT be flagged.
+    # No existing pattern above is modified, widened, or removed.
+
+    # Domain count: lowercase "domain" and alternate label shapes
+    @{ Pattern = '(?i)(\d+)\s*個\s*domain\s*SOP';                       Truth = $domainCount;        Label = '個 domain SOP (case-insensitive)' },
+    @{ Pattern = '(?i)(\d+)\s*個\s*知識層';                              Truth = $domainCount;        Label = '個知識層' },
+    @{ Pattern = '(?i)(\d+)\s+professional\s+BIM\s+SOPs?';              Truth = $domainCount;        Label = 'N professional BIM SOPs' },
+    @{ Pattern = '(?i)Domain\s*索引（(\d+)）';                           Truth = $domainCount;        Label = 'Domain 索引（N）(shared.js nav)' },
+    @{ Pattern = 'Domain[（(](\d+)[)）]';                                Truth = $domainCount;        Label = 'Domain（N）hub card' },
+    @{ Pattern = 'Skill[s]?[（(](\d+)[)）]';                             Truth = $skillCount;         Label = 'Skill（N）hub card' },
+
+    # Skill count: shapes that don't require a "編排層"/"索引" suffix (still anchored to the
+    # exact surrounding phrase, not a bare "N 個 Skill", to avoid the batch-count false
+    # positives found in contributor-template.html / architecture-v2.html / skills-index.html)
+    @{ Pattern = '本專案目前[^\d]{0,20}(\d+)\s*個\s*Skill\b';            Truth = $skillCount;         Label = '本專案目前 N 個 Skill' },
+    @{ Pattern = '(\d+)\s*個\s*Skill\s*完整索引';                        Truth = $skillCount;         Label = 'N 個 Skill 完整索引' },
+    @{ Pattern = '←\s*(\d+)\s*個\s*Skill\b';                             Truth = $skillCount;         Label = '← N 個 Skill (vault tree)' },
+    @{ Pattern = '由\s*(\d+)\s*個\s*Skill\s*編排觸發';                    Truth = $skillCount;         Label = '由 N 個 Skill 編排觸發' },
+    @{ Pattern = '本頁列\s*(\d+)\s*個\s*Skill\b';                        Truth = $skillCount;         Label = '本頁列 N 個 Skill' },
+    @{ Pattern = '(\d+)\s*個\s*Skill\s*列表';                            Truth = $skillCount;         Label = 'N 個 Skill 列表' },
+    @{ Pattern = 'CATALOG\s*·\s*(\d+)\s*個\s*Skill\b';                   Truth = $skillCount;         Label = 'CATALOG · N 個 Skill' },
+    @{ Pattern = '(\d+)\s*個\s*Skill\s*·\s*依用途分組';                   Truth = $skillCount;         Label = 'N 個 Skill · 依用途分組' },
+    @{ Pattern = '抽取\s*(\d+)\s*個\s*Skill\b';                          Truth = $skillCount;         Label = '抽取 N 個 Skill' },
+
+    # Tool count: case-insensitive "MCP Tool(s)" and an alternate "透過 N 個工具" shape
+    @{ Pattern = '(?i)(\d+)\s*個\s*MCP\s*Tools?\b';                      Truth = $toolCount;          Label = '個 MCP Tool(s) (case-insensitive)' },
+    @{ Pattern = '透過\s*(\d+)\s*個工具';                                Truth = $toolCount;          Label = '透過 N 個工具' },
+
+    # Three-layer shorthand "Skill（N・...）→ Domain（N・...）→ Tool（N・...）" (docs/BIM_MCP/index.html)
+    @{ Pattern = 'Skill（(\d+)・';                                       Truth = $skillCount;         Label = 'Skill（N・...）three-layer shorthand' },
+    @{ Pattern = 'Domain（(\d+)・';                                      Truth = $domainCount;        Label = 'Domain（N・...）three-layer shorthand' },
+    @{ Pattern = 'Tool（(\d+)・';                                        Truth = $toolCount;          Label = 'Tool（N・...）three-layer shorthand' }
 )
 
 # Resolve all paths (glob → file list)

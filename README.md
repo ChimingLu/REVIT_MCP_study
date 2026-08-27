@@ -14,7 +14,7 @@ Revit MCP lets AI clients call Autodesk Revit tools through the Model Context Pr
 
 ## What is this?
 
-Talk to Revit in plain language. Ask your AI client to *"dimension every wall on this view"* or *"check the curtain-wall elevations"*, and Revit does it — through **176 MCP tools** backed by **77 professional BIM SOPs** (building code, quantity take-off, compliance checks).
+Talk to Revit in plain language. Ask your AI client to *"dimension every wall on this view"* or *"check the curtain-wall elevations"*, and Revit does it — through **176 MCP tools** backed by **79 professional BIM SOPs** (building code, quantity take-off, compliance checks).
 
 **Who it's for:** BIM engineers and architects who use Revit and want AI-assisted, standards-based workflows. You'll need Revit (2022–2026) on Windows and to be comfortable installing an add-in.
 

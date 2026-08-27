@@ -148,7 +148,7 @@
     "reference/industry-evidence": { title: "業界證據", desc: "100× / 70% / $15-25K + 三套成熟方法論。" },
     "reference/spectrum-decision": { title: "光譜決策框架", desc: "FAIL 之後的 A/B/C/D 四條路線。" },
     "reference/skills-index": { title: "Skills 索引（54）", desc: "編排層：何時觸發 / 什麼順序。" },
-    "reference/domain-index": { title: "Domain 索引（75）", desc: "知識層：法規 / SOP / lessons。" },
+    "reference/domain-index": { title: "Domain 索引（79）", desc: "知識層：法規 / SOP / lessons。" },
     "reference/deployment-guide": { title: "部署指南", desc: "Nice3point / Release.R{YY} / setup.ps1。" },
     "reference/troubleshooting": { title: "Troubleshooting", desc: "5 經典 + 4 個 5/18 demo 修復。" },
     "reference/contributor-template": { title: "Contributor Template", desc: "新增 Domain / Skill / Tool 的順序。" },
