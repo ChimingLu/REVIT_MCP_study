@@ -693,13 +693,15 @@ Write-Host "    Tools   = $toolCount  (runtime registerRevitTools())" -Foregroun
 $skipPatterns = @('_archive', '\log\', '\docs\0425-', '\docs\0523-', 'reference\external')
 
 # Scan target files for claim-site checks (7-1/7-2/7-3)
+# DEFAULT IS SCAN. The BIM_MCP glob is recursive on purpose: a non-recursive glob silently
+# skipped docs\BIM_MCP\2026-*\ and let three stale domain-count claims sit there while 7-2
+# reported PASS. Exclusions must be explicit ($skipPatterns), never a side effect of depth.
 $scanPaths = @(
     "$projectRoot\CLAUDE.md",
     "$projectRoot\README.md",
     "$projectRoot\README.zh-TW.md",
     "$projectRoot\docs\DOCUMENT_AUDIENCE_INVENTORY.md",
-    "$projectRoot\docs\BIM_MCP\*.html",
-    "$projectRoot\docs\BIM_MCP\reference\*.html",
+    "$projectRoot\docs\BIM_MCP\**\*.html",
     "$projectRoot\docs\BIM_MCP\shared.js"
 )
 
@@ -726,7 +728,8 @@ $claimSites = @(
     @{ Pattern = '(\d+)\s*個工具可以組合';                              Truth = $toolCount;          Label = 'N 個工具可以組合' },
     # Domain count grand-total claims
     @{ Pattern = 'Domain Knowledge.{0,40}（(\d+)\s*個';                Truth = $domainCount; Label = 'Domain Knowledge 標題' },
-    @{ Pattern = '(\d+)\+?\s*個?\s*Domain\b';                          Truth = $domainCount; Label = 'N Domain' },
+    # (?<![+\d]) excludes increment notation: "+6 Domain SOP" means six were added, not a total of six.
+    @{ Pattern = '(?<![+\d])(\d+)\+?\s*個?\s*Domain\b';                Truth = $domainCount; Label = 'N Domain' },
     @{ Pattern = '(\d+)\s*個\s*SOP';                                   Truth = $domainCount; Label = '個 SOP' },
     @{ Pattern = '(\d+)\s*個\s*domain/\*\.md';                         Truth = $domainCount; Label = '個 domain/*.md' },
     @{ Pattern = '(\d+)\s*個\s*<code>domain';                          Truth = $domainCount; Label = '個 <code>domain' },
@@ -784,12 +787,18 @@ $claimSites = @(
 # Resolve all paths (glob → file list)
 $scanFiles = @()
 foreach ($p in $scanPaths) {
-    if ($p -match '\*') {
+    if ($p -match '\*\*') {
+        # "<base>\**\<filter>" - every subdirectory, any depth.
+        $base   = $p -replace '\\\*\*\\[^\\]+$', ''
+        $filter = ($p -split '\\')[-1]
+        $scanFiles += Get-ChildItem -Path $base -Filter $filter -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
+    } elseif ($p -match '\*') {
         $scanFiles += Get-ChildItem -Path $p -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
     } elseif (Test-Path -LiteralPath $p) {
         $scanFiles += $p
     }
 }
+$scanFiles = $scanFiles | Sort-Object -Unique
 # Apply skip filter
 $scanFiles = $scanFiles | Where-Object {
     $f = $_
