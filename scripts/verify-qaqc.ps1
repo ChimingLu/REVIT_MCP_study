@@ -690,6 +690,10 @@ Write-Host "    Tools   = $toolCount  (runtime registerRevitTools())" -Foregroun
 # Exclude: archived snapshots, log files, immutable date-prefixed snapshot HTMLs, external bundled mirrors
 # Snapshot policy: every docs/MMDD-*.html is an immutable event snapshot — its numbers reflect
 # the event date and are never re-synced. Living documents (BIM_MCP reference) stay in scope.
+# Exclusions are enumerated here and nowhere else. Note what is deliberately ABSENT:
+# docs\BIM_MCP\2026-*\ stays in scope. Those pages are mixed - frozen day-of-harvest numbers
+# sit next to live navigation cards describing the CURRENT index pages. A file-level exemption
+# would re-create the very blind spot the recursive glob was added to close.
 $skipPatterns = @('_archive', '\log\', '\docs\0425-', '\docs\0523-', 'reference\external')
 
 # Scan target files for claim-site checks (7-1/7-2/7-3)
@@ -716,25 +720,29 @@ $claimSites = @(
     # Tool count grand-total claims
     @{ Pattern = '共用\s*(\d+)\s*個工具';                              Truth = $toolCount;          Label = '共用 N 個工具' },
     @{ Pattern = '個\s*Domain[、，]\s*(\d+)\s*個工具';                  Truth = $toolCount;          Label = 'N 個工具 (hero 三層)' },
-    @{ Pattern = '\((\d+)\+?\s*commands?\)';                           Truth = $toolCount;          Label = '(N+ commands)' },
-    @{ Pattern = '\((\d+)\s+tools?,';                                  Truth = $toolCount;          Label = '(N tools, ...)' },
-    @{ Pattern = '封裝\s*(\d+)\s*個\s*tools?';                          Truth = $toolCount;          Label = '封裝 N 個 tools' },
+    @{ Pattern = '\((\d+)\+?\s*commands?\)';                           Truth = $toolCount;          Label = '(N+ commands)'; Dormant = $true },
+    @{ Pattern = '\((\d+)\s+tools?,';                                  Truth = $toolCount;          Label = '(N tools, ...)'; Dormant = $true },
+    @{ Pattern = '封裝\s*(\d+)\s*個\s*tools?';                          Truth = $toolCount;          Label = '封裝 N 個 tools'; Dormant = $true },
     @{ Pattern = '(\d+)\s*個\s*MCP\s*tools?\b';                        Truth = $toolCount;          Label = '個 MCP tools' },
     @{ Pattern = '(\d+)\s*個\s*原子工具';                              Truth = $toolCount;          Label = '個原子工具' },
     @{ Pattern = '(\d+)\s*個\s*語意化工具';                            Truth = $toolCount;          Label = '個語意化工具' },
     @{ Pattern = 'Tool[s]?[（(](\d+)[)）]';                             Truth = $toolCount;          Label = 'Tool（N）' },
-    @{ Pattern = '「(\d+)\s*工具編排平台';                              Truth = $toolCount;          Label = '「N 工具編排平台」' },
+    @{ Pattern = '「(\d+)\s*工具編排平台';                              Truth = $toolCount;          Label = '「N 工具編排平台」'; Dormant = $true },
     @{ Pattern = '警告：(\d+)\s*工具不該';                              Truth = $toolCount;          Label = '警告：N 工具不該' },
-    @{ Pattern = '(\d+)\s*個工具可以組合';                              Truth = $toolCount;          Label = 'N 個工具可以組合' },
+    @{ Pattern = '(\d+)\s*個工具可以組合';                              Truth = $toolCount;          Label = 'N 個工具可以組合'; Dormant = $true },
     # Domain count grand-total claims
-    @{ Pattern = 'Domain Knowledge.{0,40}（(\d+)\s*個';                Truth = $domainCount; Label = 'Domain Knowledge 標題' },
+    @{ Pattern = 'Domain Knowledge.{0,40}（(\d+)\s*個';                Truth = $domainCount; Label = 'Domain Knowledge 標題'; Dormant = $true },
     # (?<![+\d]) excludes increment notation: "+6 Domain SOP" means six were added, not a total of six.
     @{ Pattern = '(?<![+\d])(\d+)\+?\s*個?\s*Domain\b';                Truth = $domainCount; Label = 'N Domain' },
     @{ Pattern = '(\d+)\s*個\s*SOP';                                   Truth = $domainCount; Label = '個 SOP' },
     @{ Pattern = '(\d+)\s*個\s*domain/\*\.md';                         Truth = $domainCount; Label = '個 domain/*.md' },
     @{ Pattern = '(\d+)\s*個\s*<code>domain';                          Truth = $domainCount; Label = '個 <code>domain' },
     # Skill count grand-total claims (must require explicit grand-total context)
-    @{ Pattern = '##\s*Skills（(\d+)\s*個）';                           Truth = $skillCount;         Label = '## Skills（N 個）' },
+    # CLAUDE.md's Skills section dropped the （N 個） heading form and now states the count inline
+    # as "(54 skills; count table above is the gate)". The heading pattern below went dormant and
+    # nothing guarded the replacement until 7-13 surfaced it.
+    @{ Pattern = '(?i)\((\d+)\s+skills\b';                            Truth = $skillCount;         Label = '(N skills) inline' },
+    @{ Pattern = '##\s*Skills（(\d+)\s*個）';                           Truth = $skillCount;         Label = '## Skills（N 個）'; Dormant = $true },
     @{ Pattern = 'Skills\s*索引（(\d+)\s*個）';                         Truth = $skillCount;         Label = 'Skills 索引（N 個）' },
     @{ Pattern = '(\d+)\s*個編排層\s*Skill';                            Truth = $skillCount;         Label = 'N 個編排層 Skill' },
     @{ Pattern = '(\d+)\s*Skill\s*vs\b';                               Truth = $skillCount;         Label = 'N Skill vs ...' },
@@ -837,7 +845,7 @@ foreach ($site in $toolSites) {
     $toolMismatches += Find-ClaimMismatches -Files $scanFiles -Site $site
 }
 Write-Check "All tool-count claims == $toolCount" ($toolMismatches.Count -eq 0) `
-    $(if ($toolMismatches.Count -gt 0) { "$($toolMismatches.Count) mismatch(es). First:`n$($toolMismatches -join "`n" | Select-Object -First 1)`nRun script for full list." } else { "" })
+    $(if ($toolMismatches.Count -gt 0) { "$($toolMismatches.Count) mismatch(es)." } else { "" })
 if ($toolMismatches.Count -gt 0) { $toolMismatches | ForEach-Object { Write-Host $_ -ForegroundColor DarkYellow } }
 
 # 7-2: Domain count exact-match
@@ -1131,6 +1139,30 @@ else {
 # ─────────────────────────────────────────────
 # Phase 8: Document Audience and Encoding Hygiene
 # ─────────────────────────────────────────────
+Write-Host ""
+# 7-13: Claim-pattern liveness
+Write-Host ""
+Write-Host "  7-13. Claim-pattern liveness:" -ForegroundColor Cyan
+# A pattern that matches nothing and a pattern that matches N correct sites both report PASS.
+# That makes silent coverage loss invisible: reword a page and its guard quietly stops guarding.
+# Dormant = $true means "the claim site is known to be gone" - an explicit, reviewable decision.
+$deadPatterns = @()
+$activeSites  = @($claimSites | Where-Object { -not $_.Dormant })
+$dormantCount = @($claimSites | Where-Object { $_.Dormant }).Count
+foreach ($site in $activeSites) {
+    $rx = [regex]$site.Pattern
+    $found = $false
+    foreach ($f in $scanFiles) {
+        $text = Read-FileText $f
+        if (-not $text) { continue }
+        if ($rx.IsMatch($text)) { $found = $true; break }
+    }
+    if (-not $found) { $deadPatterns += $site.Label }
+}
+Write-Check "All $($activeSites.Count) active claim patterns still match a live site ($dormantCount dormant)" ($deadPatterns.Count -eq 0) `
+    $(if ($deadPatterns.Count -gt 0) { "$($deadPatterns.Count) pattern(s) match nothing. Either the claim was reworded (find it and re-guard it) or the site is gone (mark Dormant = `$true)." } else { "" })
+if ($deadPatterns.Count -gt 0) { $deadPatterns | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow } }
+
 Write-Host ""
 Write-Host "[Phase 8] Document Audience and Encoding Hygiene" -ForegroundColor Yellow
 Write-Host "─────────────────────────────────────────────" -ForegroundColor DarkGray

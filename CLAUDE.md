@@ -423,6 +423,8 @@ QA/QC must cover:
 - AI/human/shared document audience classification
 - mojibake risk in AI-only and human-facing canonical docs
 - markdown count-table claims (`| Runtime MCP tools | N |` style) in CLAUDE.md, README, README.zh-TW, and the audience inventory
+- claim-site scan scope (Phase 7 checks `7-1`/`7-2`/`7-3`): `$scanPaths` walks `docs\BIM_MCP\**\*.html` recursively. Exclusions live in `$skipPatterns` and nowhere else — never narrow coverage by editing a glob, because a file that is never read produces the same green report as a file that passes
+- claim-pattern liveness (Phase 7 check `7-13`): every pattern in `$claimSites` must still match at least one live site. A pattern that matches nothing reports PASS exactly like one that matches N correct sites, so reworded pages silently lose their guard. When a claim site legitimately disappears, mark that entry `Dormant = $true` — an explicit, reviewable decision rather than a silent zero
 - client config template portability (no hardcoded user paths; `<YOUR_PROJECT_PATH>` placeholder required)
 - snapshot banner (`data-snapshot="YYYY-MM-DD"`) on date-prefixed `docs/MMDD-*.html`
 - MCP Registry publish consistency (`server.json` ↔ `MCP-Server/package.json` ↔ schema; 3-place version parity) — Phase 7 check `7-11`, see below
