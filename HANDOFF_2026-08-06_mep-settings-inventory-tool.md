@@ -1,6 +1,6 @@
 # HANDOFF — MEP Settings 領域盤點工具(Segment / Size 系統化查詢)
 
-> 送出日期:2026-08-06｜來源:MEP 認證教學 session(C:\Users\01102088\Desktop\MEP)實測需求
+> 送出日期:2026-08-06｜來源:MEP 認證教學 session(C:\Users\<YOUR_USERNAME>\Desktop\MEP)實測需求
 > 接手:REVIT_MCP 專案 session。請依本規格開發、build、QA、count-sync。**API 可行性已確認(附反射證據),不需重驗。**
 > 決策人:TAO。**開發前若對「台灣目標尺寸集」有疑義,先問 TAO 再動寫入工具。**
 

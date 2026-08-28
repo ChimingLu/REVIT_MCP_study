@@ -32,7 +32,7 @@ gh auth status                                     # 確認有 write 權限的�
 
 ## 1. 目前 Git 狀態（已 push）
 
-- Repo：`shuotao/REVIT_MCP_study`（本機路徑 `C:\Users\01102088\Desktop\REVIT_MCP\REVIT_MCP_study`）
+- Repo：`shuotao/REVIT_MCP_study`（本機路徑 `C:\Users\<YOUR_USERNAME>\Desktop\REVIT_MCP\REVIT_MCP_study`）
 - `main = 0e2e2f5`（已 push）— 已含 **PR#95 合併**（`d1d85b6` by @Roy-y111，docs-only，GitHub 應已標 Merged）
 - 分支 `fix/issues-90-93-and-87-2026-07-28 = 753acf2`（已 push），6 個 commit：
   | SHA | Issue | 內容 |

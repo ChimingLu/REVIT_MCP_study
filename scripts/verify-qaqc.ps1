@@ -292,19 +292,56 @@ if (Test-Path $pkg) {
     Write-Check "MCP SDK dependency" ($content -match "modelcontextprotocol") "Missing MCP SDK dependency"
 }
 
-# 3-4: Client config template portability — templates must use <YOUR_PROJECT_PATH>, never a hardcoded user path
+# 3-4: No hardcoded user account names anywhere in the tracked tree.
+# Scope note: this check used to read only MCP-Server\*_config.json. The PATTERN was always right;
+# the SCOPE was five files. A Windows account name therefore sat in 15 other tracked files - docs,
+# skills, logs, a domain file - for weeks, while the check reported PASS. Same failure shape as the
+# non-recursive $scanPaths glob: a file that is never read produces the same green report as a file
+# that passes. Default is now SCAN EVERY TRACKED TEXT FILE; exclusions must be explicit below.
 Write-Host ""
-Write-Host "  3-4. Client config template portability:" -ForegroundColor Cyan
-$templateFiles = Get-ChildItem -Path "$projectRoot\MCP-Server\*_config.json" -ErrorAction SilentlyContinue
-$nonPortable = @()
-foreach ($tf in $templateFiles) {
-    $content = Read-FileText $tf.FullName
-    if ($content -and ($content -match '[A-Za-z]:[\\/]+Users[\\/]')) {
-        $nonPortable += $tf.Name
+Write-Host "  3-4. Hardcoded user paths (all tracked text files):" -ForegroundColor Cyan
+# Placeholders are the intended form. Anything else in a Users\ path is a real account name.
+$allowedUsers = @(
+    '<YOUR_USERNAME>', 'YOUR_USERNAME', '%USERNAME%', '$env:USERNAME', '*',
+    '<YOUR_PROJECT_PATH>', 'User', 'USERNAME', 'username', 'xxx', 'XXX', '...',
+    '你的名字', '你的使用者名稱', '您的使用者名稱'
+)
+# Immutable event snapshots (CLAUDE.md): their "Admin" is an explicit teaching example
+# (the page literally says "if your account name were X, type cd ...\X\..."), not a leaked account.
+# Note: this file deliberately avoids writing a literal home-directory path anywhere, or the
+# check would flag its own source text.
+$pathScanSkip = @('\docs\0425-', '\docs\0523-')
+$hardcodedPaths = @()
+$pathScanned = 0
+Push-Location $projectRoot
+$trackedForPaths = @(& git -c core.quotepath=false ls-files 2>$null)
+Pop-Location
+# '>' must stay INSIDE the capture. With it excluded, the placeholder <YOUR_USERNAME> was
+# truncated to '<YOUR_USERNAME', never matched the allow-list, and the check flagged its own fix.
+$userRx = [regex]'[Uu]sers[\\/]+([^\\/"''`\s\]},;:]+)'
+foreach ($rel in $trackedForPaths) {
+    if (-not $rel) { continue }
+    $full = Join-Path $projectRoot ($rel -replace '/', '\')
+    if (-not (Test-Path -LiteralPath $full)) { continue }
+    if ($pathScanSkip | Where-Object { $full -like "*$_*" }) { continue }
+    $content = Read-FileText $full
+    if (-not $content) { continue }
+    $pathScanned++
+    foreach ($m in $userRx.Matches($content)) {
+        $raw = $m.Groups[1].Value
+        if ($raw.StartsWith('<')) { $u = $raw.TrimEnd('.', ',', ')', '`', '"') }
+        else { $u = $raw.TrimEnd('.', ',', ')', '`', '"', '>') }
+        # An elided path writes '...' as the account name; trimming dots leaves nothing, and an
+        # empty capture must not be reported as a leaked account.
+        if (-not $u) { continue }
+        if ($allowedUsers -contains $u -or $allowedUsers -contains $raw) { continue }
+        $hardcodedPaths += "$rel : account name $u in a home-directory path"
     }
 }
-Write-Check "Config templates contain no hardcoded user paths" ($nonPortable.Count -eq 0) `
-    $(if ($nonPortable.Count -gt 0) { "Hardcoded user path in: $($nonPortable -join ', '). Use <YOUR_PROJECT_PATH> placeholder." } else { "" })
+$hardcodedPaths = $hardcodedPaths | Sort-Object -Unique
+Write-Check "No hardcoded user account names in $pathScanned tracked text files" ($hardcodedPaths.Count -eq 0) `
+    $(if ($hardcodedPaths.Count -gt 0) { "$($hardcodedPaths.Count) hardcoded path(s). Replace the account name with <YOUR_USERNAME>." } else { "" })
+if ($hardcodedPaths.Count -gt 0) { $hardcodedPaths | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow } }
 
 # ─────────────────────────────────────────────
 # Phase 4: Build Verification (Windows only)
