@@ -503,11 +503,11 @@
     <div id="cad-block-point-placement" class="bim-card domain-card">
       <div>
         <div class="domain-name">cad-block-point-placement.md</div>
-        <div class="domain-desc">CAD 圖塊（Block/INSERT）插入點批次放置點位族群：discover 掃描 → preview 回傳可檢查座標鏈（transform 不可信即停止）→ create 逐筆放置驗證。適用灑水頭／閥件等重複設備圖塊。骨架，待卓欣言（@NicheSam）補實測值。</div>
+        <div class="domain-desc">CAD 圖塊（Block/INSERT）插入點批次放置點位族群：discover 掃描 → preview 回傳可檢查座標鏈（transform 不可信即停止）→ create 逐筆放置驗證。適用灑水頭／閥件等重複設備圖塊。三工具已由 @Rumi-3653 實作並合併，尚未在真實 Revit 環境驗證（見文件狀態橫幅）。</div>
       </div>
       <div class="domain-meta">
         <span class="domain-trigger">cad 圖塊放置</span><span class="domain-trigger">block 轉族群</span><span class="domain-trigger">灑水頭建模</span><span class="domain-trigger">閥件建模</span>
-        <a href="skills-index.html#skills" class="domain-skill" onclick="event.stopPropagation()">↔ (SOP 骨架)</a>
+        <a href="skills-index.html#skills" class="domain-skill" onclick="event.stopPropagation()">↔ create_family_instances_from_dwg_blocks</a>
       </div>
     </div>
 
@@ -877,11 +877,11 @@
     <div id="mep-opening-candidate-scan" class="bim-card domain-card">
       <div>
         <div class="domain-name">mep-opening-candidate-scan.md</div>
-        <div class="domain-desc">在 detect_clashes 幾何核心上唯讀推導管線穿越結構的開孔候選：回傳建議尺寸、candidate/review_required 狀態與 warningCodes。第一版只掃描、不建套管。骨架，待卓欣言（@NicheSam）補實測值。</div>
+        <div class="domain-desc">在 detect_clashes 幾何核心上唯讀推導管線穿越結構的開孔候選：回傳建議尺寸、candidate/review_required 狀態與 warningCodes。第一版只掃描、不建套管。v1 已實作並合併；Revit 2024 runtime smoke 由貢獻者 @NicheSam 於其環境回報，本 repo 未複驗。</div>
       </div>
       <div class="domain-meta">
         <span class="domain-trigger">開孔候選</span><span class="domain-trigger">opening candidate</span><span class="domain-trigger">開孔預掃</span><span class="domain-trigger">套管前置檢核</span>
-        <a href="skills-index.html#skills" class="domain-skill" onclick="event.stopPropagation()">↔ (SOP 骨架)</a>
+        <a href="skills-index.html#skills" class="domain-skill" onclick="event.stopPropagation()">↔ scan_opening_candidates</a>
       </div>
     </div>
 

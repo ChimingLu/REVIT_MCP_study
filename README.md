@@ -230,6 +230,8 @@ Replace `<YOUR_PROJECT_PATH>` in the templates with the actual project path on y
 
 The Revit-side WebSocket service holds an exclusive lock: only one AI client can be connected at a time. A second client that tries to connect is cleanly rejected (HTTP 409), not swapped in — the first connection stays stable. Multiple AI clients are therefore used by switching, not concurrently:
 
+Before that lock check even runs, any handshake carrying a browser `Origin` header is rejected outright with HTTP 403. This closes a separate risk: a malicious page open in your browser could otherwise drive the add-in without your knowledge, since WebSocket handshakes aren't covered by the browser's same-origin policy. It has no settings opt-out and does not affect the MCP bridge, which never sends an `Origin` header.
+
 1. In the Revit ribbon, click the **"切換/釋放連線" (Switch/Release Connection)** button to release the current connection.
 2. Start or reconnect the other AI client; once its MCP server connects to `localhost:8964`, it takes the lock.
 3. The **"MCP 設定"** dialog shows which client currently holds the connection (e.g. `claude-code`, `claude-ai`).

@@ -228,6 +228,8 @@ VS Code 設定在 `.vscode/mcp.json`：
 
 Revit 端的 WebSocket 服務採「獨占鎖」機制：同一時間只有一個 AI Client 能保持連線。第二個嘗試連線的 Client 會被直接拒絕（HTTP 409），而不是取代掉原本的連線——第一個連線因此維持穩定。因此多個 AI Client 是「切換使用」而不是「同時並用」：
 
+在這道鎖定檢查之前，只要 handshake 帶有瀏覽器的 `Origin` 標頭，就會直接以 HTTP 403 拒絕。這是為了擋掉另一種風險：WebSocket handshake 不受瀏覽器同源政策保護，若無此檢查，使用者瀏覽器裡開著的惡意分頁就可能在不知情的情況下操控 add-in。此規則沒有設定可以關閉，且不影響 MCP bridge——它本來就不會送出 `Origin` 標頭。
+
 1. 在 Revit ribbon 點擊 **「切換/釋放連線」** 按鈕，釋放目前的連線。
 2. 啟動或重新連線另一個 AI Client，它的 MCP Server 連上 `localhost:8964` 後即取得連線。
 3. **「MCP 設定」** 對話框會顯示目前是哪個 Client 持有連線（例如 `claude-code`、`claude-ai`）。

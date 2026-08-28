@@ -1742,7 +1742,7 @@
         <div class="tool-module">door-window-legend-tools</div>
       </div>
       <div>
-        <div class="tool-desc">門窗圖例工具。mode=list 列出專案中已使用的門/窗型；mode=create 以 seed Legend 複製生成新圖例；mode=update 更新既有門窗圖例。create/update 會要求使用者明確選擇 layoutDirection、maxPerLine、dimensionTypeId，create 另需 seedLegendViewId，update 另需 legendViewId。</div>
+        <div class="tool-desc">門窗圖例工具。mode=list 列出專案中已使用的門/窗型；mode=create 以 seed Legend 複製生成 A+ managed 圖例（每個項目是一個 Detail Group，以 ExtensibleStorage 記錄 ownership，不再靠 TextNote 或位置猜測辨識成員）；mode=update 更新既有門窗圖例；mode=migrate 預覽或套用 legacy 項目的 A+ ownership migration（apply 預設 false 僅預覽不修改模型，true 才套用；itemKeys 可選，限定套用範圍，ambiguous/overlap/unresolved 一律跳過）。create/update 會要求使用者明確選擇 layoutDirection、maxPerLine、dimensionTypeId，create 另需 seedLegendViewId，update 另需 legendViewId。</div>
       </div>
     </div>
     <div class="tool-card" id="get_detail_components" data-tool="get_detail_components">
