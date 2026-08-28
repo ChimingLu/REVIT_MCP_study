@@ -123,6 +123,7 @@ If pulling the 2026-07-17 cleanup commit fails with "local changes would be over
 | `MCP-Server/scripts/build-apps.mjs` | esbuild single-file bundler that produces `MCP-Server/build/apps/*/index.html` for each MCP App |
 | `bridge/python/skills/ezdxf_worker.py` | Optional Python subprocess (spawned by `DwgColumnExecutor`) that reads DXF/DWG text for column-number mapping (`dwg-column-import` mode C). Needs system Python + `ezdxf`; DWG additionally needs ODA File Converter. Deployed to `%APPDATA%\RevitMCP` by `install-addon.ps1`. |
 | `scripts/verify-qaqc.ps1` | Repository QA/QC gate |
+| `docs/BIM_MCP/reference/tools-index.html` | Generated index of every runtime tool (one card each, badge = `readOnlyHint`/`destructiveHint`). Regenerate from `registerRevitTools()`; `7-14` fails on hand-edits that drift |
 | `docs/DOCUMENT_AUDIENCE_INVENTORY.md` | Canonical AI/human/shared document classification |
 | `.claude-plugin/marketplace.json` | Plugin marketplace manifest — packages shareable skills (currently `hj-pr-proposal`) as installable plugins for `/plugin marketplace add` → `/plugin install`. |
 
@@ -424,6 +425,7 @@ QA/QC must cover:
 - mojibake risk in AI-only and human-facing canonical docs
 - markdown count-table claims (`| Runtime MCP tools | N |` style) in CLAUDE.md, README, README.zh-TW, and the audience inventory
 - claim-site scan scope (Phase 7 checks `7-1`/`7-2`/`7-3`): `$scanPaths` walks `docs\BIM_MCP\**\*.html` recursively. Exclusions live in `$skipPatterns` and nowhere else — never narrow coverage by editing a glob, because a file that is never read produces the same green report as a file that passes
+- three-layer enumeration parity (Phase 7 checks `7-9`/`7-10`/`7-14`): every Domain file, every Skill, and every runtime tool must have exactly one card on its BIM_MCP index page, checked in both directions. `7-1`/`7-2`/`7-3` only verify that the stated *numbers* are right — a correct count is fully compatible with zero items being documented, which is how the Tool layer stayed unlisted while every count claim passed. `7-14` additionally checks that `tools-index.html`'s own derived tallies (badge counts, per-category counts) agree with the cards it actually contains; that page is generated from `registerRevitTools()`, so regenerate it rather than hand-editing
 - claim-pattern liveness (Phase 7 check `7-13`): every pattern in `$claimSites` must still match at least one live site. A pattern that matches nothing reports PASS exactly like one that matches N correct sites, so reworded pages silently lose their guard. When a claim site legitimately disappears, mark that entry `Dormant = $true` — an explicit, reviewable decision rather than a silent zero
 - client config template portability (no hardcoded user paths; `<YOUR_PROJECT_PATH>` placeholder required)
 - snapshot banner (`data-snapshot="YYYY-MM-DD"`) on date-prefixed `docs/MMDD-*.html`

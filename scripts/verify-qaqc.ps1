@@ -651,6 +651,18 @@ function Get-ToolCount {
     return $hits.Count
 }
 
+function Get-ToolNames {
+    # Same runtime registry as Get-ToolCount. Returns $null when the build is unavailable,
+    # so the caller can SKIP rather than report a false failure.
+    $nodeScript = "import('./MCP-Server/build/tools/index.js').then(m=>{console.log(m.registerRevitTools().map(t=>t.name).join('\n'))}).catch(()=>process.exit(2))"
+    Push-Location $projectRoot
+    $result = & node --input-type=module -e $nodeScript 2>$null
+    $exit = $LASTEXITCODE
+    Pop-Location
+    if ($exit -ne 0 -or -not $result) { return $null }
+    return @($result | Where-Object { $_ -match '\S' })
+}
+
 function Get-DomainCount {
     # All domain/*.md including meta — single grand total
     $rootCount = (Get-ChildItem -Path "$projectRoot\domain" -Filter "*.md" -ErrorAction SilentlyContinue |
@@ -730,6 +742,14 @@ $claimSites = @(
     @{ Pattern = '「(\d+)\s*工具編排平台';                              Truth = $toolCount;          Label = '「N 工具編排平台」'; Dormant = $true },
     @{ Pattern = '警告：(\d+)\s*工具不該';                              Truth = $toolCount;          Label = '警告：N 工具不該' },
     @{ Pattern = '(\d+)\s*個工具可以組合';                              Truth = $toolCount;          Label = 'N 個工具可以組合'; Dormant = $true },
+    # tools-index.html claim sites (the page is generated, but the prose around it is not)
+    @{ Pattern = 'Tools\s*索引（(\d+)\s*個）';                       Truth = $toolCount;          Label = 'Tools 索引（N 個）' },
+    @{ Pattern = 'TOOLS INDEX[^<]*<span[^>]*>(\d+)\s*個';                 Truth = $toolCount;          Label = 'TOOLS INDEX eyebrow N 個' },
+    @{ Pattern = '>(\d+)\s+Tools</h4>';                              Truth = $toolCount;          Label = 'hub card N Tools' },
+    @{ Pattern = '(\d+)\s*個\s*MCP\s*工具完整索引';                     Truth = $toolCount;          Label = 'N 個 MCP 工具完整索引' },
+    @{ Pattern = '八類加總等於\s*(\d+)';                            Truth = $toolCount;          Label = '八類加總等於 N' },
+    @{ Pattern = '(\d+)\s*個工具攤開';                                Truth = $toolCount;          Label = 'N 個工具攤開' },
+    @{ Pattern = '(\d+)\s*個工具\s*·\s*依用途分組';                      Truth = $toolCount;          Label = 'N 個工具·依用途分組' },
     # Domain count grand-total claims
     @{ Pattern = 'Domain Knowledge.{0,40}（(\d+)\s*個';                Truth = $domainCount; Label = 'Domain Knowledge 標題'; Dormant = $true },
     # (?<![+\d]) excludes increment notation: "+6 Domain SOP" means six were added, not a total of six.
@@ -817,11 +837,15 @@ $scanFiles = $scanFiles | Where-Object {
 function Find-ClaimMismatches {
     param([array]$Files, [hashtable]$Site)
     $mismatches = @()
+    # Build the regex once, and probe the whole file before splitting it into lines: most
+    # (pattern, file) pairs never match at all, and line-splitting every ~50-pattern pass over a
+    # 2000-line page is where the runtime goes. Same verdicts, far less work.
+    $rx = [regex]$Site.Pattern
     foreach ($f in $Files) {
         $text = Read-FileText $f
         if (-not $text) { continue }
+        if (-not $rx.IsMatch($text)) { continue }
         $lines = $text -split "`r?`n"
-        $rx = [regex]$Site.Pattern
         for ($i = 0; $i -lt $lines.Count; $i++) {
             $matches = $rx.Matches($lines[$i])
             foreach ($m in $matches) {
@@ -1149,19 +1173,91 @@ Write-Host "  7-13. Claim-pattern liveness:" -ForegroundColor Cyan
 $deadPatterns = @()
 $activeSites  = @($claimSites | Where-Object { -not $_.Dormant })
 $dormantCount = @($claimSites | Where-Object { $_.Dormant }).Count
+# Read each file once up front instead of once per pattern (48 patterns x 19 files was 900+ reads).
+$scanTexts = @()
+foreach ($f in $scanFiles) {
+    $t = Read-FileText $f
+    if ($t) { $scanTexts += $t }
+}
 foreach ($site in $activeSites) {
     $rx = [regex]$site.Pattern
     $found = $false
-    foreach ($f in $scanFiles) {
-        $text = Read-FileText $f
-        if (-not $text) { continue }
-        if ($rx.IsMatch($text)) { $found = $true; break }
+    foreach ($t in $scanTexts) {
+        if ($rx.IsMatch($t)) { $found = $true; break }
     }
     if (-not $found) { $deadPatterns += $site.Label }
 }
 Write-Check "All $($activeSites.Count) active claim patterns still match a live site ($dormantCount dormant)" ($deadPatterns.Count -eq 0) `
     $(if ($deadPatterns.Count -gt 0) { "$($deadPatterns.Count) pattern(s) match nothing. Either the claim was reworded (find it and re-guard it) or the site is gone (mark Dormant = `$true)." } else { "" })
 if ($deadPatterns.Count -gt 0) { $deadPatterns | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow } }
+
+Write-Host ""
+# 7-14: Real tools <-> BIM_MCP tools-index
+Write-Host ""
+Write-Host "  7-14. Real tools -> BIM_MCP tools-index (exactly one card each):" -ForegroundColor Cyan
+# Domain (7-9) and Skill (7-10) were enumerated against the hub; Tool - the largest layer - was not.
+# 7-1 only checks that the NUMBER 176 is stated correctly; a correct count is compatible with zero
+# tools being documented. This check closes that gap by enumerating, not counting.
+$toolsIndex = Join-Path $projectRoot "docs\BIM_MCP\reference\tools-index.html"
+$toolNames  = Get-ToolNames
+if (-not $toolNames) {
+    Write-Skip "tools-index enumeration" "runtime tool registry unavailable (run npm run build)"
+}
+elseif (-not (Test-Path -LiteralPath $toolsIndex)) {
+    Write-Check "Every tool has exactly one tools-index card" $false "docs/BIM_MCP/reference/tools-index.html is missing"
+}
+else {
+    $indexText = Read-FileText $toolsIndex
+    $cardProblems = @()
+    foreach ($t in $toolNames) {
+        $hits = ([regex]('data-tool="' + [regex]::Escape($t) + '"')).Matches($indexText).Count
+        if ($hits -ne 1) { $cardProblems += "$t : $hits card(s), expected exactly 1" }
+    }
+    # Reverse direction: a card with no matching runtime tool is just as wrong.
+    $carded = @(([regex]'data-tool="([^"]+)"').Matches($indexText) | ForEach-Object { $_.Groups[1].Value })
+    foreach ($c in $carded) {
+        if ($toolNames -notcontains $c) { $cardProblems += "$c : card exists but no such runtime tool" }
+    }
+    # The page is generated, so its own derived numbers (badge tallies, per-category counts) must
+    # agree with the cards it actually contains. Guarding these with more regex claim-sites would be
+    # the hand-written-list trap again; checking generation self-consistency is the structural answer.
+    $cardCount = ([regex]'class="tool-card"').Matches($indexText).Count
+    $badge = @{
+        readonly    = ([regex]'tool-badge readonly').Matches($indexText).Count
+        write       = ([regex]'tool-badge write').Matches($indexText).Count
+        destructive = ([regex]'tool-badge destructive').Matches($indexText).Count
+    }
+    $stated = @{}
+    foreach ($pair in @(@('readonly', '唯讀'), @('write', '會寫入'), @('destructive', '破壞性'))) {
+        $m = ([regex]("<strong>" + $pair[1] + "</strong>（(\d+) 個）")).Match($indexText)
+        if ($m.Success) { $stated[$pair[0]] = [int]$m.Groups[1].Value }
+    }
+    foreach ($k in @('readonly', 'write', 'destructive')) {
+        if (-not $stated.ContainsKey($k)) {
+            $cardProblems += "badge tally for '$k' is stated nowhere on the page"
+        }
+        elseif ($stated[$k] -ne $badge[$k]) {
+            $cardProblems += "badge tally mismatch for '$k': prose says $($stated[$k]), cards carry $($badge[$k])"
+        }
+    }
+    $badgeSum = $badge.readonly + $badge.write + $badge.destructive
+    if ($badgeSum -ne $cardCount) {
+        $cardProblems += "every card must carry exactly one badge: $cardCount cards but $badgeSum badges"
+    }
+    $catNums = @(([regex]'class="cat-header">[^<]*（(\d+) 個）').Matches($indexText) |
+        ForEach-Object { [int]$_.Groups[1].Value })
+    $catSum = ($catNums | Measure-Object -Sum).Sum
+    if ($catNums.Count -eq 0) {
+        $cardProblems += "no category headers found - the page structure changed"
+    }
+    elseif ($catSum -ne $cardCount) {
+        $cardProblems += "category headers sum to $catSum but the page has $cardCount cards"
+    }
+
+    Write-Check "Every one of $($toolNames.Count) tools has exactly one tools-index card, and the page's own tallies agree" ($cardProblems.Count -eq 0) `
+        $(if ($cardProblems.Count -gt 0) { "$($cardProblems.Count) problem(s). Regenerate the page from registerRevitTools() rather than hand-editing." } else { "" })
+    if ($cardProblems.Count -gt 0) { $cardProblems | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow } }
+}
 
 Write-Host ""
 Write-Host "[Phase 8] Document Audience and Encoding Hygiene" -ForegroundColor Yellow
