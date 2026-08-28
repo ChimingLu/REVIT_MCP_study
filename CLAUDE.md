@@ -70,6 +70,7 @@ If the Revit MCP tools are unavailable, state that limitation and provide generi
 
 The Revit-side WebSocket service (`MCP/Core/SocketService.cs`) holds an exclusive lock: while one MCP client is connected, additional incoming connections are rejected with HTTP 409 before the WebSocket upgrade (no more clobbering the active connection). Consequences:
 
+- Any handshake carrying an `Origin` header is rejected with HTTP 403 **before** the exclusive-lock check and before the upgrade (issue #125). WebSocket handshakes are exempt from the same-origin policy and do no CORS preflight, so without this a malicious page open in the user's browser could drive the add-in. The node MCP bridge (`ws`) sends no `Origin`; browsers always do per RFC 6455, which separates the two at zero cost to the bridge. It sits before the lock so an untrusted handshake can neither learn the lock state nor squat on it. This gate has **no settings opt-out** — unlike `ExclusiveLock` below.
 - Multiple AI clients are used by switching, never concurrently — a second client is cleanly refused, not swapped in.
 - Do not advise users to run two MCP-connected AI clients against the same Revit session.
 - To hand the connection to another client, use the "切換/釋放連線" (Switch/Release Connection) ribbon button — it releases the current connection so the next reconnecting client can take the lock. Because WebSocket connections are anonymous at the transport level, the switch accepts whoever reconnects first, not a guaranteed named target.
