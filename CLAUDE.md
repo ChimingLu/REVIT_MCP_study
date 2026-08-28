@@ -123,6 +123,7 @@ If pulling the 2026-07-17 cleanup commit fails with "local changes would be over
 | `MCP-Server/scripts/build-apps.mjs` | esbuild single-file bundler that produces `MCP-Server/build/apps/*/index.html` for each MCP App |
 | `bridge/python/skills/ezdxf_worker.py` | Optional Python subprocess (spawned by `DwgColumnExecutor`) that reads DXF/DWG text for column-number mapping (`dwg-column-import` mode C). Needs system Python + `ezdxf`; DWG additionally needs ODA File Converter. Deployed to `%APPDATA%\RevitMCP` by `install-addon.ps1`. |
 | `scripts/verify-qaqc.ps1` | Repository QA/QC gate |
+| `docs/BIM_MCP/reference/mep-playbook.html` | Hub page for the MEP design playbook (`docs/mep-design-playbook-ch1..ch3` + the model guide). The chapters are teaching material derived from an Autodesk certification course model — **not a client project**; the page states that provenance up front. Method definition stays in `domain/mep-space-demand-matrix.md` |
 | `docs/BIM_MCP/reference/tools-index.html` | Generated index of every runtime tool (one card each, badge = `readOnlyHint`/`destructiveHint`). Regenerate from `registerRevitTools()`; `7-14` fails on hand-edits that drift |
 | `docs/DOCUMENT_AUDIENCE_INVENTORY.md` | Canonical AI/human/shared document classification |
 | `.claude-plugin/marketplace.json` | Plugin marketplace manifest — packages shareable skills (currently `hj-pr-proposal`) as installable plugins for `/plugin marketplace add` → `/plugin install`. |
@@ -257,6 +258,7 @@ Domain files and skills have different responsibilities:
 | Command | `.claude/commands/*.md` | Slash-command behavior | English preferred |
 | AI constitution | `CLAUDE.md` | Global AI rules and project map | English only |
 | Human docs | `README.md`, `README.zh-TW.md`, `docs/` | Installation, onboarding, teaching | Use the target human audience language |
+| Teaching companion | `docs/mep-design-playbook-*.md` | A worked walkthrough of one domain method, for people meeting it for the first time. **Not a fourth layer** — the domain file still defines the method, and wins on any conflict | Traditional Chinese |
 
 ## Domain Knowledge and Workflow Files
 
@@ -333,6 +335,7 @@ Read the matching file before applying a workflow or calculation.
 | opening candidate, 開孔候選, opening scan, 開孔預掃, scan_opening_candidates, 套管前置檢核, clearanceMm | `domain/mep-opening-candidate-scan.md` |
 | cad 圖塊放置, block 轉族群, 灑水頭建模, 閥件建模, point placement from CAD block, INSERT to FamilyInstance | `domain/cad-block-point-placement.md` |
 | space centroid, 空間中心點, 代表點, centroid, 批次放置, 逐室放置, 風口放置, air terminal, place_family_instances, get_space_centroid, IsPointInSpace | `domain/space-centroid-placement.md` |
+| 機電教戰手冊, MEP playbook, 教戰手冊, 五種量, 量從哪裡來, 決定的量, 教學假設, 放風口, 系統流量 vs 端點需求, 旗標誠實但問錯問題 | `domain/mep-space-demand-matrix.md`（方法） + `docs/BIM_MCP/reference/mep-playbook.html`（教學導覽） |
 | pyRevit, UI API, 按鈕觸發, 觸發按鈕, PostableCommandId, PostCommand, Reload, ribbon 按鈕, 外掛 UI 命令 | `domain/tool-capability-boundary.md` |
 
 Meta and governance domain files:
