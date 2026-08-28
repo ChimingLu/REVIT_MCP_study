@@ -1319,7 +1319,7 @@ Write-Host ""
 Write-Host ""
 Write-Host "  7-14. Real tools -> BIM_MCP tools-index (exactly one card each):" -ForegroundColor Cyan
 # Domain (7-9) and Skill (7-10) were enumerated against the hub; Tool - the largest layer - was not.
-# 7-1 only checks that the NUMBER 176 is stated correctly; a correct count is compatible with zero
+# 7-1 only checks that the tool-count NUMBER is stated correctly; a correct count is compatible with zero
 # tools being documented. This check closes that gap by enumerating, not counting.
 $toolsIndex = Join-Path $projectRoot "docs\BIM_MCP\reference\tools-index.html"
 $toolNames  = Get-ToolNames
@@ -1393,7 +1393,7 @@ Write-Host "  7-15. Registered tool -> dispatcher case (TS declares, C# must imp
 #
 # Direction is FORWARD ONLY (registered tool -> some dispatcher case), by design, not oversight:
 # MCP/Core/CommandExecutor.cs plus every MCP/Core/Commands/*.cs partial carries far more
-# `case "..."` string labels (~230+) than there are registered tools (176), because the same
+# `case "..."` string labels (~230+) than there are registered tools (the current registry count), because the same
 # switch-on-string idiom is reused for internal, non-tool things too (e.g. filter operators like
 # "equals"/"contains"/"not_equals" inside the element-query evaluator). A reverse check - "every
 # case label must trace to a tool" - would be pure noise against that gap, flagging dozens of
@@ -1460,7 +1460,7 @@ else {
     # opposite: the tool stays fully visible in tools/list and in $toolNames above, the mismatch
     # stays on the books, and the reason prints as a WARN on every single run.
     $knownUnimplemented = @(
-        @{ Name = 'check_sanitary_fixture_requirements'; Reason = 'Registered at MCP-Server/src/tools/room-tools.ts:300. No domain/*.md defines a sanitary-fixture-count-by-building-occupancy table, and CLAUDE.md Domain Method Compliance forbids supplying that table from model knowledge - so it cannot be implemented right now. It cannot be unregistered either: that would drop the tool count 176->175 and force a CLAUDE.md count-table edit, out of scope here. Pending: an authoritative legal source, requested from the maintainer by the issue reporter.' }
+        @{ Name = 'check_sanitary_fixture_requirements'; Reason = 'Registered at MCP-Server/src/tools/room-tools.ts:300. No domain/*.md defines a sanitary-fixture-count-by-building-occupancy table, and CLAUDE.md Domain Method Compliance forbids supplying that table from model knowledge - so it cannot be implemented right now. It cannot be unregistered either: that would drop the tool count by one and force a CLAUDE.md count-table edit, out of scope here. Pending: an authoritative legal source, requested from the maintainer by the issue reporter.' }
     )
     $knownUnimplementedNames = @($knownUnimplemented | ForEach-Object { $_.Name })
 
