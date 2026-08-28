@@ -301,21 +301,59 @@ if (Test-Path $pkg) {
 Write-Host ""
 Write-Host "  3-4. Hardcoded user paths (all tracked text files):" -ForegroundColor Cyan
 # Placeholders are the intended form. Anything else in a Users\ path is a real account name.
+# The three angle-bracket forms are deliberately distinct, not interchangeable: <YOUR_USERNAME>
+# is the reader's own home directory, <CONTRIBUTOR_USERNAME> is a path quoted from a
+# contributor's machine, <OTHER_MACHINE_USER> is a second machine belonging to this project.
+# Calling someone else's home directory "yours" is wrong, which is why this list grew instead
+# of reusing one label. Adding an entry widens what the gate accepts: state the semantics of
+# any new placeholder here, or the list becomes an exit for silencing a FAIL rather than a
+# vocabulary for describing paths honestly.
 $allowedUsers = @(
     '<YOUR_USERNAME>', 'YOUR_USERNAME', '%USERNAME%', '$env:USERNAME', '*',
     '<YOUR_PROJECT_PATH>', 'User', 'USERNAME', 'username', 'xxx', 'XXX', '...',
-    '你的名字', '你的使用者名稱', '您的使用者名稱'
+    '你的名字', '你的使用者名稱', '您的使用者名稱',
+    '<CONTRIBUTOR_USERNAME>', '<OTHER_MACHINE_USER>'
 )
 # Immutable event snapshots (CLAUDE.md): their "Admin" is an explicit teaching example
 # (the page literally says "if your account name were X, type cd ...\X\..."), not a leaked account.
-# Note: this file deliberately avoids writing a literal home-directory path anywhere, or the
-# check would flag its own source text.
-$pathScanSkip = @('\docs\0425-', '\docs\0523-')
+# Exactly two tracked files actually contain that Admin placeholder in a home-directory path —
+# listed by full path, not by prefix. A prefix like '\docs\0425-' or '\docs\0523-' also matches
+# sibling snapshot files that carry no such placeholder (0425-karpathy-wiki.html,
+# 0523-dry-run-retrospective.md, 0523-handson.html, 0523-monthly.html), silently widening the
+# exclusion to 6 files instead of 2 — exactly the "a file that is never read produces the same
+# green report as a file that passes" failure this check exists to prevent. Full paths only; see
+# the self-check below that FAILs if the hit count ever drifts from this list's length.
+# Note: this file deliberately avoids writing a literal home-directory path anywhere (including in
+# this comment), or the check below would flag its own source text.
+$pathScanSkip = @(
+    '\docs\0425-presentation.html'  # immutable 2026-04-25 snapshot: has the Admin teaching placeholder, not a leaked account
+    '\docs\0523-presentation.html'  # immutable 2026-05-23 snapshot: same Admin teaching placeholder as the 0425 snapshot
+)
 $hardcodedPaths = @()
 $pathScanned = 0
-Push-Location $projectRoot
-$trackedForPaths = @(& git -c core.quotepath=false ls-files 2>$null)
-Pop-Location
+$pathScanSkipHits = @()
+# git ls-files writes raw UTF-8 filename bytes to stdout (core.quotepath=false disables the
+# octal-escaping git would otherwise apply to non-ASCII bytes). PowerShell decodes captured
+# native-process stdout through [Console]::OutputEncoding, which on a zh-TW/ja-JP Windows
+# console defaults to the legacy code page (e.g. cp950), not UTF-8. Three tracked files with
+# CJK filenames were silently mis-decoded before Test-Path ever ran: Test-Path saw a garbled
+# path, returned $false, and the `if (-not (Test-Path ...)) { continue }` below skipped them
+# with no FAIL, no WARN — the check never judged these 3 files, it never READ them.
+# core.quotepath=false alone does not fix this: it only stops git from octal-escaping; the
+# console still has to decode the resulting UTF-8 bytes correctly, and cp950 does not.
+# Reproduced directly: under a cp950 console, tracked=620 unreadable=3 (the exact 3 CJK-named
+# tracked files); under a UTF-8 console, unreadable=0. Scoped to just this one git call and
+# restored in `finally` — this must not leave a global encoding side effect for the rest of the
+# script or the user's shell.
+$prevConsoleOutputEncoding = [Console]::OutputEncoding
+try {
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    Push-Location $projectRoot
+    $trackedForPaths = @(& git -c core.quotepath=false ls-files 2>$null)
+    Pop-Location
+} finally {
+    [Console]::OutputEncoding = $prevConsoleOutputEncoding
+}
 # '>' must stay INSIDE the capture. With it excluded, the placeholder <YOUR_USERNAME> was
 # truncated to '<YOUR_USERNAME', never matched the allow-list, and the check flagged its own fix.
 $userRx = [regex]'[Uu]sers[\\/]+([^\\/"''`\s\]},;:]+)'
@@ -323,7 +361,7 @@ foreach ($rel in $trackedForPaths) {
     if (-not $rel) { continue }
     $full = Join-Path $projectRoot ($rel -replace '/', '\')
     if (-not (Test-Path -LiteralPath $full)) { continue }
-    if ($pathScanSkip | Where-Object { $full -like "*$_*" }) { continue }
+    if ($pathScanSkip | Where-Object { $full -like "*$_*" }) { $pathScanSkipHits += $full; continue }
     $content = Read-FileText $full
     if (-not $content) { continue }
     $pathScanned++
@@ -342,6 +380,36 @@ $hardcodedPaths = $hardcodedPaths | Sort-Object -Unique
 Write-Check "No hardcoded user account names in $pathScanned tracked text files" ($hardcodedPaths.Count -eq 0) `
     $(if ($hardcodedPaths.Count -gt 0) { "$($hardcodedPaths.Count) hardcoded path(s). Replace the account name with <YOUR_USERNAME>." } else { "" })
 if ($hardcodedPaths.Count -gt 0) { $hardcodedPaths | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow } }
+
+# Self-check: each $pathScanSkip entry must INDEPENDENTLY exclude exactly one tracked file — not
+# just an aggregate total. Comparing only totals lets a false-exclude and a false-include cancel
+# out and still PASS: e.g. entry A over-matches 2 files while entry B (renamed/deleted target)
+# matches 0 — the aggregate reads "2 listed, 2 matched" even though neither entry does what it
+# claims. Reproduced: $pathScanSkip = @('\docs\0425-', '\docs\deleted-file.html') gives an
+# aggregate listed=2 matched=2. An aggregate-only design would PASS on that input; no such
+# check ever shipped, so this is a counterfactual, not a description of a previous version.
+# The true per-entry breakdown is
+# '\docs\0425-' -> 2 files (over-match, silently widens the exclusion) and
+# '\docs\deleted-file.html' -> 0 files (dead entry, excludes nothing). Per-entry breakdown catches
+# both; the aggregate catches neither.
+$pathScanSkipHits = $pathScanSkipHits | Sort-Object -Unique
+$pathScanSkipByEntry = @{}
+foreach ($entry in $pathScanSkip) { $pathScanSkipByEntry[$entry] = @() }
+foreach ($full in $pathScanSkipHits) {
+    foreach ($entry in $pathScanSkip) {
+        if ($full -like "*$entry*") { $pathScanSkipByEntry[$entry] += $full }
+    }
+}
+$pathScanSkipBadEntries = @()
+foreach ($entry in $pathScanSkip) {
+    $hits = @($pathScanSkipByEntry[$entry] | Sort-Object -Unique)
+    if ($hits.Count -ne 1) {
+        $pathScanSkipBadEntries += "'$entry' matched $($hits.Count) file(s) (want exactly 1): $(if ($hits.Count -gt 0) { $hits -join ', ' } else { '(none)' })"
+    }
+}
+Write-Check "Each pathScanSkip entry excludes exactly 1 tracked file ($($pathScanSkip.Count) listed)" ($pathScanSkipBadEntries.Count -eq 0) `
+    $(if ($pathScanSkipBadEntries.Count -gt 0) { $pathScanSkipBadEntries -join ' | ' } else { "" })
+if ($pathScanSkipBadEntries.Count -gt 0) { $pathScanSkipBadEntries | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow } }
 
 # ─────────────────────────────────────────────
 # Phase 4: Build Verification (Windows only)
@@ -787,6 +855,10 @@ $claimSites = @(
     @{ Pattern = '八類加總等於\s*(\d+)';                            Truth = $toolCount;          Label = '八類加總等於 N' },
     @{ Pattern = '(\d+)\s*個工具攤開';                                Truth = $toolCount;          Label = 'N 個工具攤開' },
     @{ Pattern = '(\d+)\s*個工具\s*·\s*依用途分組';                      Truth = $toolCount;          Label = 'N 個工具·依用途分組' },
+    # "N 個執行層工具" — the phrase lives in two files (shared.js PAGE_META desc, tools-index.html
+    # og:title). No pattern above matches this shape, so both copies of the number were unguarded:
+    # 7-1 could report PASS while they disagreed with each other and with the registry.
+    @{ Pattern = '(\d+)\s*個執行層工具';                               Truth = $toolCount;          Label = 'N 個執行層工具' },
     # Domain count grand-total claims
     @{ Pattern = 'Domain Knowledge.{0,40}（(\d+)\s*個';                Truth = $domainCount; Label = 'Domain Knowledge 標題'; Dormant = $true },
     # (?<![+\d]) excludes increment notation: "+6 Domain SOP" means six were added, not a total of six.

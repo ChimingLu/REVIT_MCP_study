@@ -102,7 +102,7 @@
 
   <p>這三件事要一起讀。第一件說它不會洩漏任何客戶資訊；第二件說它不是方法的最終定義，只是那份定義的教學展開；第三件說它的普適性有上限——<strong>在單一案例上成立的東西，不會因為寫得詳細就變成通則</strong>。</p>
 
-  <p style="color:var(--text-muted);font-size:13px;">每一章末尾都有自己的「誠實邊界」小節，逐條列出該章哪些說法是實測、哪些是轉引、哪些尚未查證。那些小節不是免責聲明，是<strong>閱讀時該一起帶著的限制條件</strong>。</p>
+  <p style="color:var(--text-muted);font-size:13px;">每一章末尾都有自己的「誠實邊界」小節，以類別列出該章自身的限制（第一章談引用等級與查證時效，第三章最細，逐項區分「模型讀回確認過」與「依 SOP 應該要有但尚未落地」）。那些小節不是免責聲明，是<strong>閱讀時該一起帶著的限制條件</strong>。</p>
 </section>
 
 <section class="bim-section">
@@ -186,10 +186,12 @@
       <tr><td>要來的</td><td>建築、業主</td><td>誰給的、哪一版</td></tr>
       <tr><td>查來的</td><td>法規、標準</td><td>條號，以及你是讀原文還是轉引</td></tr>
       <tr><td>算來的</td><td>由前兩種推導</td><td>公式，以及代進去的每一個輸入屬於哪一種</td></tr>
-      <tr class="warn-row"><td>決定的 ⚠️</td><td><strong>判斷，沒有出處</strong></td><td>誰決定的、依據什麼、什麼時候可以改</td></tr>
-      <tr><td>教學假設</td><td>演練用的暫代值</td><td><strong>不得用於實際專案</strong></td></tr>
+      <tr class="warn-row"><td>決定的 ⚠️</td><td><strong>判斷，沒有出處</strong></td><td>決定了什麼、依據什麼、誰決定的、日期與影響範圍</td></tr>
+      <tr class="warn-row"><td>查無的 🔴</td><td><strong>沒有基準，不是你沒找到</strong></td><td>你查過哪些管道、給的是下限還是提出值、追蹤到哪</td></tr>
     </tbody>
   </table>
+
+  <p style="color:var(--text-muted);font-size:13px;">你可能在附冊的模型導覽看到「教學假設」這個字眼——那不是第六種量。它是 <code>MEP_用途類別狀態</code> 欄的其中一個值，把第四種「決定的」再細分成「技師判定」與「教學假設」兩級，只用來標記本演練模型裡哪些判定不具法律效力，不是這張表分類法的一員。</p>
 
   <p><strong>第四種是整套方法的重心。</strong>「決定的量」沒有出處可查——它是判斷。危險在於它一旦寫進模型，外觀就跟前三種一模一樣：都是欄位裡的一個數字。分不出來，就會把「有人決定過」誤讀成「查得到依據」。</p>
 
@@ -203,13 +205,13 @@
 
   <ul>
     <li><a href="domain-index.html#mep-space-demand-matrix"><code>domain/mep-space-demand-matrix</code></a> —— <strong>方法的定義</strong>。原則、矩陣、轉換鏈、硬限制。衝突時以它為準。</li>
-    <li><a href="domain-index.html#space-centroid-placement"><code>domain/space-centroid-placement</code></a> —— 第二章放風口那一節依循的代表點方法。</li>
+    <li><a href="domain-index.html#space-centroid-placement"><code>domain/space-centroid-placement</code></a> —— 同一批風口若要改成逐室批次放置（而非第二章的手動點擊），方法在這裡；第二章用的是手動放置，該節的重點在欄位住在哪一層（Instance/Type/Family），不是批次自動化。</li>
     <li>本手冊 —— <strong>同一套方法的教學語氣版</strong>，補上 domain 不寫的東西：踩過的坑、錯誤的樣子、以及每一步為什麼是那個順序。</li>
   </ul>
 
   <p>兩者的分工可以用一句話說完：<strong>domain 回答「方法是什麼」，手冊回答「第一次做的人會在哪裡卡住」</strong>。前者要精確，後者要誠實。</p>
 
-  <p style="color:var(--text-muted);font-size:13px;">手冊裡出現的每一支工具，都能在 <a href="tools-index.html">Tools 索引</a>查到它的唯讀／寫入標註。第三章的檢核之所以要等配管畫完才能跑，正是因為那些數值在那之前根本還沒被算出來。</p>
+  <p style="color:var(--text-muted);font-size:13px;">手冊教的是 Revit UI 的操作順序；同樣這些步驟若要改由工具執行，<a href="tools-index.html">Tools 索引</a>會標出哪一支是唯讀、哪一支會動模型。第三章的檢核之所以要等配管畫完才能跑，正是因為那些數值在那之前根本還沒被算出來。</p>
 </section>
 
 <section class="bim-section">
@@ -217,14 +219,14 @@
 
   <ul>
     <li><strong>單一案例</strong>。全書原則來自一次演練，不是跨案驗證的通則。</li>
-    <li><strong>部分法規為轉引</strong>。條號與國際標準有些讀過原文、有些沒有；各章已逐條標明等級，<strong>正式引用前請自行核對</strong>。</li>
+    <li><strong>部分法規為轉引</strong>。第一章與第三章（及附冊的結案模型導覽）以「法條明列／比照判定」標示 §102 的落點，但<strong>未逐條標明自身引用是讀原文或轉引</strong>——正式引用前請自行核對。</li>
     <li><strong>「四類角色」等分類法無法源</strong>，屬工作方法。對業主不可以法規為由主張其必要性。</li>
     <li><strong>查證有時效</strong>。第一章「台灣查無機房面積基準」是特定日期的查證結果，若日後取得公會設計手冊等來源，該節須更新。</li>
     <li><strong>涵蓋範圍止於通風</strong>。空調設備選型、冷源架構、機房面積反算尚未定案，不在三章範圍內。</li>
     <li><strong>本頁的「讀原文」連結指向 <code>main</code> 分支</strong>。手冊目前在待合併的分支上，連結會與這一頁同時生效。</li>
   </ul>
 
-  <p style="color:var(--text-muted);font-size:13px;">最完整的限制條件在各章末尾的「誠實邊界」小節，包含哪些數字是模型讀回確認過的、哪些是「依 SOP 應該要有但尚未落地」的規範性主張。<strong>這兩種陳述在文中刻意分開標示，讀者不應混淆。</strong></p>
+  <p style="color:var(--text-muted);font-size:13px;">最完整的限制條件在各章末尾的「誠實邊界」小節。<strong>第三章</strong>另外區分了兩種陳述：哪些數字是模型讀回確認過的、哪些是「依 SOP 應該要有但尚未落地」的規範性主張。<strong>讀到後者時不應把它當成前者。</strong></p>
 </section>
 
 <footer class="bim-footer">

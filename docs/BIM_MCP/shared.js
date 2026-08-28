@@ -167,7 +167,16 @@
     "contributor-template": { title: "Contributor Template", desc: "雙寫流程：知識先、編排後。" },
     "personal-llm-wiki": { title: "個人 LLM Wiki", desc: "Obsidian 個人知識庫 + 回饋上游。" },
     "contributors": { title: "貢獻者致謝", desc: "17 位建置協助人名單。" },
-    "architecture-v2": { title: "三層架構 V2", desc: "Skill / Domain / Tool。" }
+    "architecture-v2": { title: "三層架構 V2", desc: "Skill / CLAUDE.md / Domain 分工。" }
+    // "mep-playbook" and "tools-index" intentionally have no bare key here — the metaFor()
+    // fallback below resolves them via "reference/" + key. A bare entry sitting beside an
+    // existing "reference/xxx" entry gives one page two independently-editable descriptions
+    // with nothing enforcing that they agree. That drift is not hypothetical: of the 12
+    // bare/"reference/" pairs above, architecture-v2 had diverged into a contradiction — its
+    // bare key read "Skill / Domain / Tool" while that page's own <h1> and og:description say
+    // "Skill / CLAUDE.md / Domain". The bare key was corrected to match the page; the other
+    // pairs still differ in wording. When adding a new reference/ page, add ONLY the
+    // "reference/xxx" entry.
   };
 
   window.initFooterPreview = function initFooterPreview() {
@@ -181,7 +190,9 @@
     function metaFor(path) {
       // 從 href 抽出 key
       var key = path.replace(/^(\.\.\/|\.\/)/, "").replace(/\.html$/, "");
-      return PAGE_META[key] || { title: key, desc: "" };
+      // 裸鍵查不到時，退一步試 "reference/" + key —— 新頁面只需維護一組帶前綴的鍵即可涵蓋
+      // index.html（用 "reference/xxx" 連到 reference/ 頁）與 reference/*.html 互連（用裸 "xxx"）兩種呼叫方式。
+      return PAGE_META[key] || PAGE_META["reference/" + key] || { title: key, desc: "" };
     }
 
     function card(dir, href, meta) {
