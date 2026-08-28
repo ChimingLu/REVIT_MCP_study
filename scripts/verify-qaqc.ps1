@@ -377,9 +377,23 @@ foreach ($rel in $trackedForPaths) {
     }
 }
 $hardcodedPaths = $hardcodedPaths | Sort-Object -Unique
-Write-Check "No hardcoded user account names in $pathScanned tracked text files" ($hardcodedPaths.Count -eq 0) `
-    $(if ($hardcodedPaths.Count -gt 0) { "$($hardcodedPaths.Count) hardcoded path(s). Replace the account name with <YOUR_USERNAME>." } else { "" })
-if ($hardcodedPaths.Count -gt 0) { $hardcodedPaths | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow } }
+# Floor on the scan universe (inspector review, loop-up S5 correction pass): PASS must never mean
+# "scanned zero files". Before this fix, an empty $trackedForPaths (e.g. `git ls-files` returning
+# nothing - not a git repo, or run outside one) fell through to "No hardcoded user account names in
+# 0 tracked text files" == PASS, exactly the "a file never read produces the same green report as a
+# file that passes" failure this check's own header comment (above) already names. Modeled on
+# 7-15's own Write-Skip for an empty $toolNames: an empty scan universe is UNVERIFIED, not clean,
+# so it must not silently pass. Out-of-scope-of-S5 origin, fixed here because it is the same defect
+# class as 7-15's block-comment fix (check runs, reports PASS, nothing was actually verified) and
+# lives in the same file this stage already owns.
+if ($trackedForPaths.Count -eq 0) {
+    Write-Skip "No hardcoded user account names in tracked text files" "git ls-files returned nothing - scan universe empty, cannot verify (not a git repo, or run outside one)"
+}
+else {
+    Write-Check "No hardcoded user account names in $pathScanned tracked text files" ($hardcodedPaths.Count -eq 0) `
+        $(if ($hardcodedPaths.Count -gt 0) { "$($hardcodedPaths.Count) hardcoded path(s). Replace the account name with <YOUR_USERNAME>." } else { "" })
+    if ($hardcodedPaths.Count -gt 0) { $hardcodedPaths | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow } }
+}
 
 # Self-check: each $pathScanSkip entry must INDEPENDENTLY exclude exactly one tracked file — not
 # just an aggregate total. Comparing only totals lets a false-exclude and a false-include cancel
@@ -1366,6 +1380,122 @@ else {
     Write-Check "Every one of $($toolNames.Count) tools has exactly one tools-index card, and the page's own tallies agree" ($cardProblems.Count -eq 0) `
         $(if ($cardProblems.Count -gt 0) { "$($cardProblems.Count) problem(s). Regenerate the page from registerRevitTools() rather than hand-editing." } else { "" })
     if ($cardProblems.Count -gt 0) { $cardProblems | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow } }
+}
+
+Write-Host ""
+# 7-15: Registered tool -> C# dispatcher case reconciliation (forward only)
+Write-Host ""
+Write-Host "  7-15. Registered tool -> dispatcher case (TS declares, C# must implement):" -ForegroundColor Cyan
+# Why this exists: a tool the TS layer registers but the C# dispatcher cannot execute reaches
+# MCP/Core/CommandExecutor.cs's `default:` and throws NotImplementedException($"未實作的命令: ...")
+# at CALL time - loud to the caller, invisible to QA/QC. This class of defect has recurred
+# (issue #111, again #125). This check catches it before shipping instead of at a user's desk.
+#
+# Direction is FORWARD ONLY (registered tool -> some dispatcher case), by design, not oversight:
+# MCP/Core/CommandExecutor.cs plus every MCP/Core/Commands/*.cs partial carries far more
+# `case "..."` string labels (~230+) than there are registered tools (176), because the same
+# switch-on-string idiom is reused for internal, non-tool things too (e.g. filter operators like
+# "equals"/"contains"/"not_equals" inside the element-query evaluator). A reverse check - "every
+# case label must trace to a tool" - would be pure noise against that gap, flagging dozens of
+# legitimate internal cases as if they were dead tools. So only the direction that maps to a real
+# defect (declared-but-unreachable tool) is checked here.
+if (-not $toolNames) {
+    Write-Skip "Tool -> dispatcher reconciliation" "runtime tool registry unavailable (run npm run build)"
+}
+else {
+    # Rename map is PARSED out of MCP-Server/src/tools/revit-tools.ts, not hardcoded, so a future
+    # rename doesn't require editing this check. Today that file rewrites exactly one tool name
+    # before sending it to C# - a ternary in executeRevitTool():
+    #   const commandName = toolName === "query_elements_with_filter" ? "query_elements" : toolName;
+    # Comparing raw tool names without applying this map would falsely flag that redirect as an
+    # orphan (registered name query_elements_with_filter has no case of that name - only
+    # query_elements does).
+    $revitToolsTsPath = Join-Path $projectRoot "MCP-Server\src\tools\revit-tools.ts"
+    $renameMap = @{}
+    $revitToolsTsText = Read-FileText $revitToolsTsPath
+    if ($revitToolsTsText) {
+        $renameRx = [regex]'toolName\s*===\s*"([^"]+)"\s*\?\s*"([^"]+)"\s*:\s*toolName'
+        foreach ($m in $renameRx.Matches($revitToolsTsText)) { $renameMap[$m.Groups[1].Value] = $m.Groups[2].Value }
+    }
+
+    # C# case labels: CommandExecutor.cs + every MCP/Core/Commands/*.cs, GLOBBED - never a hand-typed
+    # file list. A hand-typed list of "the partials that carry case labels" was already wrong once
+    # (issue #125's reporter named six; the actual number is eight) and a hardcoded list rots the
+    # same way again the next time a partial is added or a case moves between files.
+    $dispatcherFiles = @(Join-Path $projectRoot "MCP\Core\CommandExecutor.cs") +
+        @(Get-ChildItem -Path "$projectRoot\MCP\Core\Commands\*.cs" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+    # Case labels are matched WITHOUT a `^` line-start anchor and AFTER stripping comments - two
+    # bugs found together by inspector review (loop-up S5 correction pass):
+    #  1) MAJOR silent false-negative: `/* ... */` block comments (and `// ...` line comments) were
+    #     never stripped before matching, so a case commented out - e.g. `/* TODO: case "x": */` -
+    #     still counted as "implemented". A dispatcher case inside a comment cannot execute; the real
+    #     dispatcher would still throw NotImplementedException while this check reported PASS.
+    #     Comments MUST be stripped before the case-label scan, not left to chance.
+    #  2) minor: a `^\s*` anchor only finds the FIRST case label on a physical line, missing any
+    #     second-or-later label on lines like `case "a": case "b":`. That direction is fail-safe for
+    #     a real orphan (extra unmatched labels only shrink the orphan set, never hide a genuine
+    #     orphan), but it silently defeats the QUARANTINE DRIFT self-check: a quarantined tool
+    #     implemented as a second label on a shared line would keep WARNing forever instead of
+    #     FAILing as drifted. Matching every occurrence in the text (not anchored to line start)
+    #     fixes both; the HashSet already de-duplicates.
+    $blockCommentRx = [regex]'(?s)/\*.*?\*/'
+    $lineCommentRx = [regex]'//[^\r\n]*'
+    $caseLabelRx = [regex]'case\s+"([^"]+)"\s*:'
+    $dispatcherCaseLabels = New-Object 'System.Collections.Generic.HashSet[string]'
+    foreach ($f in $dispatcherFiles) {
+        $text = Read-FileText $f
+        if (-not $text) { continue }
+        # Strip block comments first (they can span lines), then line comments on what remains.
+        # Block comments are replaced with a space, not removed outright, so tokens on either side
+        # of a stripped comment never accidentally fuse into a new match.
+        $stripped = $blockCommentRx.Replace($text, ' ')
+        $stripped = $lineCommentRx.Replace($stripped, '')
+        foreach ($m in $caseLabelRx.Matches($stripped)) { [void]$dispatcherCaseLabels.Add($m.Groups[1].Value) }
+    }
+
+    # Quarantine: a list of NAMED, REASONED exceptions to a still-live check - never a filter
+    # applied before the check runs. Issue #111 explicitly rejected a "known unimplemented" list
+    # that removes tools from consideration at registration time, because that demotes "declaration
+    # and implementation disagree" from a bug to a permanent normal state. This list does the
+    # opposite: the tool stays fully visible in tools/list and in $toolNames above, the mismatch
+    # stays on the books, and the reason prints as a WARN on every single run.
+    $knownUnimplemented = @(
+        @{ Name = 'check_sanitary_fixture_requirements'; Reason = 'Registered at MCP-Server/src/tools/room-tools.ts:300. No domain/*.md defines a sanitary-fixture-count-by-building-occupancy table, and CLAUDE.md Domain Method Compliance forbids supplying that table from model knowledge - so it cannot be implemented right now. It cannot be unregistered either: that would drop the tool count 176->175 and force a CLAUDE.md count-table edit, out of scope here. Pending: an authoritative legal source, requested from the maintainer by the issue reporter.' }
+    )
+    $knownUnimplementedNames = @($knownUnimplemented | ForEach-Object { $_.Name })
+
+    $orphans = @()
+    $quarantinedStillOrphan = @()
+    foreach ($t in $toolNames) {
+        $mappedName = if ($renameMap.ContainsKey($t)) { $renameMap[$t] } else { $t }
+        if (-not $dispatcherCaseLabels.Contains($mappedName)) {
+            if ($knownUnimplementedNames -contains $t) { $quarantinedStillOrphan += $t }
+            else { $orphans += $t }
+        }
+    }
+
+    # Drift self-check, modeled on 3-4's $pathScanSkip per-entry self-check: a quarantined tool that
+    # is NO LONGER an orphan (someone implemented it) must FAIL, not silently keep WARNing. A stale
+    # quarantine entry swallowing a now-working tool is exactly the rot this gate exists to prevent.
+    $driftedQuarantine = @($knownUnimplemented | Where-Object { $quarantinedStillOrphan -notcontains $_.Name })
+
+    # One combined PASS/FAIL verdict covering both failure modes this gate guards against: a real
+    # (un-quarantined) orphan, or a quarantine entry that has drifted stale. Either alone must FAIL.
+    $reconcileProblems = @()
+    if ($orphans.Count -gt 0) { $reconcileProblems += "$($orphans.Count) registered tool(s) have no dispatcher case: $($orphans -join ', ')" }
+    if ($driftedQuarantine.Count -gt 0) { $reconcileProblems += "$($driftedQuarantine.Count) `$knownUnimplemented entry(ies) now HAVE a dispatcher case - remove from the quarantine list in scripts/verify-qaqc.ps1: $(($driftedQuarantine | ForEach-Object { $_.Name }) -join ', ')" }
+
+    Write-Check "Registered tools reconcile against the C# dispatcher ($($dispatcherCaseLabels.Count) case labels across $($dispatcherFiles.Count) dispatcher files, $($renameMap.Count) rename(s) applied, $($knownUnimplemented.Count) quarantined)" ($reconcileProblems.Count -eq 0) `
+        $(if ($reconcileProblems.Count -gt 0) { $reconcileProblems -join ' | ' } else { "" })
+    if ($orphans.Count -gt 0) {
+        $orphans | ForEach-Object { Write-Host "    $_ : no matching case in MCP/Core/CommandExecutor.cs or MCP/Core/Commands/*.cs" -ForegroundColor Red }
+    }
+
+    foreach ($q in $knownUnimplemented) {
+        if ($quarantinedStillOrphan -contains $q.Name) {
+            Write-Warn "Quarantined orphan tool: $($q.Name)" $q.Reason
+        }
+    }
 }
 
 Write-Host ""
