@@ -1,0 +1,138 @@
+# Build outputs
+MCP/MCP/bin/
+MCP/MCP/obj/
+MCP-Server/build/
+MCP-Server/node_modules/
+
+# Secrets / credentials — NEVER commit tokens or API keys
+.env
+.env.*
+!.env.example
+*.pat
+*.token
+github_pat_*
+
+# IDE and Editor files
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/mcp.json
+!.vscode/GIT_SETUP.md
+*.user
+*.suo
+*.cache
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+*.pid
+*.seed
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+
+# Package files
+*.nupkg
+
+# Agent/workflow files
+.agent/
+
+# AI client 本機設定
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.gemini/
+
+# 開發暫存腳本（非穩定，不該共享）
+MCP-Server/scratch/
+
+# Private User Guide (Excluded from Push)
+PRIVATE_INSTRUCTIONS.md
+
+# 私人內容（電子郵件 / 內部文件，不公開閱覽）
+thank.md
+docs/newsletters/
+
+# 個人內容盤點 2026-07-11：會議記錄/推廣文案/簡報/暫存文件（僅本機，勿公開）
+docs/0425-meeting-pr30-pr32.html
+docs/0523-copy.md
+docs/0523-posters.html
+docs/posters/
+docs/2026-06_family-inventory (1).md
+docs/automation_life.pptx
+docs/yuanjing_work_review_20260619.pptx
+docs/book_to_database.html
+docs/deploy-flow.html
+docs/gemini-code-*.html
+docs/gemini-code-*.py
+docs/mermaid-test.html
+docs/*.pptx
+
+# 教材（已開放，供學生練習使用）
+# 教材/
+
+# 修正 MCP obj 路徑
+MCP/obj/
+
+# MCP 編譯輸出
+MCP/bin/
+MCP.Contracts/bin/
+MCP.Contracts/obj/
+MCP.CoreRuntime/bin/
+MCP.CoreRuntime/obj/
+
+# 通用防線：任何 C# 專案的編譯產物一律不入庫
+# （2026-07-17 清除 27 個誤入庫的 obj/bin 檔後加入；CI check-tracked-artifacts.yml 為第二道防線）
+**/obj/
+**/bin/
+
+# Result 資料夾（與此專案無關）
+result/
+
+# 建置與除錯暫存檔
+build_error*.txt
+build_log*.txt
+build_output*.txt
+build_r*.txt
+debug_*.txt
+debug_*.json
+daylight_report.txt
+exterior_wall_check_report.json
+
+# Core Reload 測試記錄（本機個人紀錄，不提交）
+MCP-Server/scripts/core-reload-results.jsonl
+
+# MCP-Server 暫存輸出
+MCP-Server/daylight_report.txt
+MCP-Server/debug_*.txt
+MCP-Server/exterior_check_*.txt
+MCP-Server/exterior_wall_boundary_report.json
+MCP-Server/temp_*.txt
+MCP-Server/weighted_area_report.txt
+MCP-Server/scripts/rooms.json
+MCP-Server/scripts/rooms_utf8.json
+MCP-Server/scripts/rooms_output.txt
+MCP-Server/scripts/exterior_wall_check_report.json
+MCP-Server/far_report.txt
+Recent_Update_Review.md
+
+# 個人 IDE / Obsidian workspace（不入庫）
+REVIT_MCP.code-workspace
+domain/MCP knowledge/
+
+# Fork 逆向盤點報告（點名個人活動，私密、本地保留，不入庫）
+# 腳本 scripts/fork-audit.ps1 仍入庫；只有產出報告排除。
+docs/fork-audit/
+
+
+# Personal knowledge vault (see templates/personal-vault/ and docs/BIM_MCP/reference/personal-llm-wiki.html)
+/vault/
+/.obsidian/
