@@ -1,0 +1,204 @@
+{
+  "floorId": 16066502,
+  "superelevationRate": 0.03,
+  "sectionDistances": [
+    {
+      "innerIndex": 3,
+      "outerIndex": 5,
+      "innerToCenterMm": 3415.0,
+      "outerToCenterMm": 2850.0
+    },
+    {
+      "innerIndex": 6,
+      "outerIndex": 8,
+      "innerToCenterMm": 3059.0,
+      "outerToCenterMm": 2850.0
+    },
+    {
+      "innerIndex": 9,
+      "outerIndex": 11,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 2850.0
+    },
+    {
+      "innerIndex": 12,
+      "outerIndex": 14,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 2850.0
+    },
+    {
+      "innerIndex": 15,
+      "outerIndex": 17,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 2850.0
+    },
+    {
+      "innerIndex": 18,
+      "outerIndex": 20,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 2846.0
+    },
+    {
+      "innerIndex": 21,
+      "outerIndex": 23,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 3128.0
+    },
+    {
+      "innerIndex": 24,
+      "outerIndex": 26,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 3283.0
+    },
+    {
+      "innerIndex": 27,
+      "outerIndex": 29,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 2842.0
+    },
+    {
+      "innerIndex": 30,
+      "outerIndex": 32,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 3069.0
+    },
+    {
+      "innerIndex": 33,
+      "outerIndex": 35,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 2854.0
+    },
+    {
+      "innerIndex": 36,
+      "outerIndex": 38,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 2854.0
+    },
+    {
+      "innerIndex": 39,
+      "outerIndex": 41,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 2854.0
+    },
+    {
+      "innerIndex": 42,
+      "outerIndex": 44,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 3027.0
+    },
+    {
+      "innerIndex": 45,
+      "outerIndex": 47,
+      "innerToCenterMm": 3002.0,
+      "outerToCenterMm": 3221.0
+    },
+    {
+      "innerIndex": 48,
+      "outerIndex": 50,
+      "innerToCenterMm": 3010.0,
+      "outerToCenterMm": 3362.0
+    },
+    {
+      "innerIndex": 51,
+      "outerIndex": 53,
+      "innerToCenterMm": 3000.0,
+      "outerToCenterMm": 3185.0
+    },
+    {
+      "innerIndex": 54,
+      "outerIndex": 56,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 3092.0
+    },
+    {
+      "innerIndex": 57,
+      "outerIndex": 59,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 3081.0
+    },
+    {
+      "innerIndex": 60,
+      "outerIndex": 62,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 3150.0
+    },
+    {
+      "innerIndex": 63,
+      "outerIndex": 65,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 3124.0
+    },
+    {
+      "innerIndex": 66,
+      "outerIndex": 68,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 3136.0
+    },
+    {
+      "innerIndex": 69,
+      "outerIndex": 71,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 3028.0
+    },
+    {
+      "innerIndex": 72,
+      "outerIndex": 74,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 3000.0
+    },
+    {
+      "innerIndex": 75,
+      "outerIndex": 77,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 3054.0
+    },
+    {
+      "innerIndex": 78,
+      "outerIndex": 80,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 2986.0
+    },
+    {
+      "innerIndex": 81,
+      "outerIndex": 83,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 3412.0
+    },
+    {
+      "innerIndex": 84,
+      "outerIndex": 86,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 3731.0
+    },
+    {
+      "innerIndex": 87,
+      "outerIndex": 89,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 4160.0
+    },
+    {
+      "innerIndex": 90,
+      "outerIndex": 92,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 4718.0
+    },
+    {
+      "innerIndex": 93,
+      "outerIndex": 95,
+      "innerToCenterMm": 2998.0,
+      "outerToCenterMm": 4317.0
+    },
+    {
+      "innerIndex": 96,
+      "outerIndex": 98,
+      "innerToCenterMm": 2999.5,
+      "outerToCenterMm": 2999.5
+    },
+    {
+      "innerIndex": 99,
+      "outerIndex": 101,
+      "innerToCenterMm": 3000.0,
+      "outerToCenterMm": 3000.0
+    }
+  ]
+}

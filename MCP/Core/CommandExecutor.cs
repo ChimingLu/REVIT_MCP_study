@@ -637,6 +637,20 @@ namespace RevitMCP.Core
                         result = RampSuperelevationTool.ApplySuperelevation(_uiApp.ActiveUIDocument.Document, parameters);
                         break;
 
+                    // === 超跑車道幾何適宜性檢查 (domain/ramp-supercar-check.md) ===
+                    case "check_ramp_slope_compliance":
+                        result = CheckRampSlopeCompliance(parameters);
+                        break;
+                    case "check_ramp_transition_geometry":
+                        result = CheckRampTransitionGeometry(parameters);
+                        break;
+                    case "check_ramp_turning_radius":
+                        result = CheckRampTurningRadius(parameters);
+                        break;
+                    case "generate_ramp_compliance_report":
+                        result = GenerateRampComplianceReport(parameters);
+                        break;
+
                     case "calculate_exterior_wall_scaffold_perimeter":
                         result = CalculateExteriorWallScaffoldPerimeter(parameters);
                         break;

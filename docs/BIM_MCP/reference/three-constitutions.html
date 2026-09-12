@@ -23,7 +23,7 @@
     <span class="bim-topnav-current">四憲法</span>
   </div>
   <div class="bim-topnav-actions">
-    <a href="https://github.com/shuotao/REVIT_MCP_study" target="_blank" rel="noopener" class="bim-topnav-btn bim-topnav-btn-github" title="View source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+    <a href="https://github.com/shuotao/REVIT_MCP_study" target="_blank" rel="noopener" class="bim-topnav-btn bim-topnav-btn-github" title="View source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.76-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
     <a href="philosophy-22-propositions.html" class="bim-topnav-btn">← 22 命題</a>
     <a href="../index.html" class="bim-topnav-btn">回首頁</a>
   </div>
@@ -303,7 +303,7 @@
   <ol>
     <li>使用者是否要求合規檢查、合規比、面積/體積/計數計算或任何 domain-specific 量化分析？→ 進入步驟 2。</li>
     <li>掃 CLAUDE.md「Domain Knowledge & Workflow Files」觸發關鍵字（採光/daylight、走廊/corridor、防火/fire rating、排煙/smoke exhaust、停車/parking、容積/FAR、碰撞/clash、樓梯/stair compliance）。是否有關鍵字匹配？→ 若是，對應 <code>domain/*.md</code> <strong>必須在計算前讀</strong>。</li>
-    <li>計畫算法是否複製該 domain 檔的每個步驟，包含所有扣除（如 75cm sill baseline）、納入規則（如含玻璃門納入採光）、乘數（如天窗 ×3、深陽台 ×0.7）？→ 若否，丟掉自己的算法，原樣用 domain 檔。</li>
+    <li>計畫算法是否複製該 domain 檔的每個步驟，包含所有扣除（如 76cm sill baseline）、納入規則（如含玻璃門納入採光）、乘數（如天窗 ×3、深陽台 ×0.7）？→ 若否，丟掉自己的算法，原樣用 domain 檔。</li>
     <li>是否有 tool 欄位被忽略而 domain 檔需要？（如 <code>SillHeight</code>、<code>HeadHeight</code>、<code>Category=門</code>）→ 若是，算法 under-specified。修完才能輸出。</li>
   </ol>
 
@@ -311,7 +311,7 @@
   <p>使用者請求「L2 居室採光分析」。AI 正確呼叫 <code>get_room_daylight_info</code> 取得 tool response（<strong>Data Honesty 過關</strong>），但 <strong>未讀 <code>domain/daylight-area-check.md</code></strong> 即自行套用簡化算法：</p>
   <ul>
     <li>排除所有外牆門</li>
-    <li>未套 75cm 台度扣除公式</li>
+    <li>未套 76cm 台度扣除公式</li>
   </ul>
   <p>結果 <strong>Room 203/204/205 的有效採光面積被系統性低估 1.38–4.14 m²</strong>。同時間另一 AI 遵照 domain SOP 計算，數值與官方公式一致。</p>
 
@@ -319,12 +319,12 @@
     <div class="bim-card bim-card-bad">
       <h4 style="color:var(--bad);">❌ 違規做法</h4>
       <p>「Room 203 採光分析：4 扇外牆窗，合計 7.742 m²。採光比 7.742 / 55.08 = 14.06%，合格。」</p>
-      <p style="font-size:13px;color:var(--text-muted);">問題：忽略外牆門（含玻璃部分），未套 75cm 公式對 SillHeight &lt; 750mm 的開口扣除。看似合理但<strong>系統性低估</strong>。</p>
+      <p style="font-size:13px;color:var(--text-muted);">問題：忽略外牆門（含玻璃部分），未套 76cm 公式對 SillHeight &lt; 760mm 的開口扣除。看似合理但<strong>系統性低估</strong>。</p>
     </div>
     <div class="bim-card bim-card-ok">
       <h4 style="color:var(--ok);">✓ 正確做法（Branch A）</h4>
-      <p>「執行前先讀 <code>domain/daylight-area-check.md</code> 步驟 3、4：納入外牆門（含玻璃部分）且對 <code>SillHeight &lt; 750mm</code> 的開口套 <code>Effective Height = HeadHeight - 750mm</code> 公式。</p>
-      <p>據此 Room 203 = <strong>4 扇外牆窗</strong>（SH 全 &gt;750mm，合計 7.742 m²）<strong>+ 1 扇外牆門</strong>（Effective Height = 2260.6 - 750 = 1510.6mm；面積 = 0.9144 × 1.5106 = 1.381 m²）= <strong>9.123 m²</strong>，採光比 9.123/55.08 = <strong>16.56%</strong>，≥ 12.5% 合格。」</p>
+      <p>「執行前先讀 <code>domain/daylight-area-check.md</code> 步驟 3、4：納入外牆門（含玻璃部分）且對 <code>SillHeight &lt; 760mm</code> 的開口套 <code>Effective Height = HeadHeight - 760mm</code> 公式。</p>
+      <p>據此 Room 203 = <strong>4 扇外牆窗</strong>（SH 全 &gt;760mm，合計 7.742 m²）<strong>+ 1 扇外牆門</strong>（Effective Height = 2260.6 - 760 = 1510.6mm；面積 = 0.9144 × 1.5106 = 1.381 m²）= <strong>9.123 m²</strong>，採光比 9.123/55.08 = <strong>16.56%</strong>，≥ 12.5% 合格。」</p>
     </div>
   </div>
 
@@ -365,7 +365,7 @@
 
   <div class="how-tech">
     <div class="how-tech-label">WHY</div>
-    <div class="how-tech-content">第二憲法保證「<strong>事實是真的</strong>」，但事實本身不會「合規」。把真實數據用<strong>錯誤算法</strong>處理 → 仍然得到錯答案。例如採光 raw data 全對，但忽略「75cm 台度扣除」公式 → Room 203 系統性低估 1.38-4.14 m²。乾淨的 tool 資料 + 編造的算法 = 仍然是<strong>幻覺答案</strong>。</div>
+    <div class="how-tech-content">第二憲法保證「<strong>事實是真的</strong>」，但事實本身不會「合規」。把真實數據用<strong>錯誤算法</strong>處理 → 仍然得到錯答案。例如採光 raw data 全對，但忽略「76cm 台度扣除」公式 → Room 203 系統性低估 1.38-4.14 m²。乾淨的 tool 資料 + 編造的算法 = 仍然是<strong>幻覺答案</strong>。</div>
     <div class="how-tech-label">HOW</div>
     <div class="how-tech-content">任何牽涉法規 / code-check / 工程分析的任務，<strong>計算前先掃 CLAUDE.md 觸發表</strong>。若關鍵字匹配 → 對應 <code>domain/*.md</code> 必須先讀，按其公式 / 扣除 / 乘數逐步執行。LM「合理預設」禁止替代專案 SOP。</div>
     <div class="how-tech-label">TECHNIQUE</div>
@@ -374,7 +374,7 @@
 
   <div class="empathy-quote">
     <span class="empathy-quote-label">「常識」是設計專業的最大陷阱</span>
-    <div class="empathy-quote-text">每個建築系學生都會算「<em>窗面積 ÷ 房間面積</em>」採光比——<br>但只有資深建築師知道「<em>SH&lt;75cm 要扣除 Effective Height</em>」這條規範細節。<br>AI 用「常識」算 = 用學生水平交圖。</div>
+    <div class="empathy-quote-text">每個建築系學生都會算「<em>窗面積 ÷ 房間面積</em>」採光比——<br>但只有資深建築師知道「<em>SH&lt;76cm 要扣除 Effective Height</em>」這條規範細節。<br>AI 用「常識」算 = 用學生水平交圖。</div>
     <span class="empathy-quote-context">這也是為什麼<span class="lingo">「Domain 是本體」</span>是 BIM 場域的核心命題——規範細節 30 年累積的<strong>專業 know-how</strong> 才是真正的價值，不是「會算面積」的基礎能力。第三憲法保證 AI 永遠用<strong>資深建築師的算法</strong>，不是學生的算法。</span>
   </div>
 
@@ -401,7 +401,7 @@
       </li>
       <li>
         <div>
-          <span class="fr-type">Index</span><a href="domain-index.html">75 Domain 完整索引（觸發表）</a>
+          <span class="fr-type">Index</span><a href="domain-index.html">76 Domain 完整索引（觸發表）</a>
           <span class="fr-desc">CLAUDE.md「Domain Knowledge & Workflow Files」段的視覺化版</span>
         </div>
       </li>

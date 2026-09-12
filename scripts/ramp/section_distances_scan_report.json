@@ -1,0 +1,84 @@
+{
+  "ok": false,
+  "message": "No sheet with recognizable inner/outer index + centerline distance columns.",
+  "sheets": [
+    {
+      "sheet": "Revit修正_9cm約束",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "Revit模型點_3%平順",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "1-101高程表",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "檢核總覽",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "資料來源與說明",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "實測距離補高9cm",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "實測距離方案比較",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "圖表說明",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "Revit模型點",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "Revit輸出說明",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "3%平順修正說明",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "Revit施工修正清單",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    },
+    {
+      "sheet": "端點固定9cm說明",
+      "headerRow": null,
+      "headerMap": {},
+      "rows": 0
+    }
+  ]
+}

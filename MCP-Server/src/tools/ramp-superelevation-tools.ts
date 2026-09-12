@@ -61,10 +61,9 @@ export const rampSuperelevationTools: Tool[] = [
     {
         name: "apply_ramp_superelevation",
         description:
-            "依車道寬度與橫向超高率，自動計算並批次套用車道樓板的超高漸變。" +
-            "向心側（內側）頂點保持平坦（Z 偏移=0），離心側（外側）頂點依 laneWidthMm x superelevationRate% 抬高。" +
-            "漸變段頂點依 transitionRatio 做線性插值，確保車道表面平滑過渡。" +
-            "使用前請先以 get_floor_slab_shape 取得頂點索引，再依轉彎幾何判定內外側。",
+            "套用車道橫向超高，內建中心線平順化、端點保護與 ±90mm 變形限制。" +
+            "可選擇提供 targetElevations（絕對高程表）一次性精確寫入；" +
+            "或提供 sectionDistances（每個斷面的內/外側到中心線距離）以支援不對稱車道幾何。",
         inputSchema: {
             type: "object",
             properties: {
@@ -72,48 +71,36 @@ export const rampSuperelevationTools: Tool[] = [
                     type: "number",
                     description: "目標樓板的 Element ID",
                 },
-                laneWidthMm: {
-                    type: "number",
-                    description: "車道有效寬度（mm），用於計算外側最大 Z 偏移量",
-                },
                 superelevationRate: {
                     type: "number",
-                    description: "橫向超高率（%），常見設計值 2~8%，最大不得超過 20%",
+                    description: "橫向超高率（小數），預設 0.03 代表 3%",
                 },
-                innerEdgeVertexIds: {
+                targetElevations: {
+                    type: "object",
+                    description: "可選的絕對高程表，鍵值為頂點索引，值為目標高程（mm）。若提供，會優先套用這組高程，適合直接貼上 Phase 1 計算出的 68 點表。",
+                    additionalProperties: { type: "number" },
+                },
+                sectionDistances: {
                     type: "array",
-                    description: "向心側（內側）完整超高段頂點索引清單",
-                    items: { type: "integer" },
+                    description: "可選。每個斷面的內外側到中心線距離（mm），用於不對稱車道超高計算。",
+                    items: {
+                        type: "object",
+                        properties: {
+                            innerIndex: { type: "integer", description: "內側頂點索引" },
+                            outerIndex: { type: "integer", description: "外側頂點索引" },
+                            innerToCenterMm: { type: "number", description: "內側到中心線距離（mm）" },
+                            outerToCenterMm: { type: "number", description: "外側到中心線距離（mm）" },
+                        },
+                        required: ["innerIndex", "outerIndex", "innerToCenterMm", "outerToCenterMm"],
+                    },
                 },
-                outerEdgeVertexIds: {
+                fixedVertexIndices: {
                     type: "array",
-                    description: "離心側（外側）完整超高段頂點索引清單，將抬高至最大超高量",
+                    description: "可選。強制保持原高程不變的頂點索引（例如起終點接合處），用於避免端部折落。",
                     items: { type: "integer" },
-                },
-                innerTransitionVertexIds: {
-                    type: "array",
-                    description: "（選填）內側漸變段頂點索引，偏移量為 transitionRatio 比例",
-                    items: { type: "integer" },
-                },
-                outerTransitionVertexIds: {
-                    type: "array",
-                    description: "（選填）外側漸變段頂點索引，偏移量為最大超高量 x transitionRatio",
-                    items: { type: "integer" },
-                },
-                transitionRatio: {
-                    type: "number",
-                    description: "漸變段所達到的超高比例（0~1，預設 0.5），用於產生平滑漸變",
-                    default: 0.5,
-                    minimum: 0,
-                    maximum: 1,
-                },
-                keepInnerFlat: {
-                    type: "boolean",
-                    description: "內側頂點是否保持 Z 偏移=0（預設 true）；false 時內側會對稱下沉以加強橫坡效果",
-                    default: true,
                 },
             },
-            required: ["floorId", "laneWidthMm", "superelevationRate", "innerEdgeVertexIds", "outerEdgeVertexIds"],
+            required: ["floorId"],
         },
     },
 ];

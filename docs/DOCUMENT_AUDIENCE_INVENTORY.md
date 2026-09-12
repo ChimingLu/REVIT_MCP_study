@@ -1,4 +1,4 @@
-# Document Audience Inventory
+﻿# Document Audience Inventory
 
 This inventory defines which project documents are for AI agents, human readers, or both. It is the reference for future documentation cleanup and mojibake prevention.
 
@@ -15,8 +15,8 @@ This inventory defines which project documents are for AI agents, human readers,
 
 | Item | Count | Source |
 |---|---:|---|
-| Runtime MCP tools | 167 | `registerRevitTools()` |
-| Domain SOP files | 75 | `domain/*.md` except README, plus `domain/references/*.md` |
+| Runtime MCP tools | 174 | `registerRevitTools()` |
+| Domain SOP files | 76 | `domain/*.md` except README, plus `domain/references/*.md` |
 | Claude skills | 50 | `.claude/skills/*/SKILL.md` |
 
 ## AI-Only Documents

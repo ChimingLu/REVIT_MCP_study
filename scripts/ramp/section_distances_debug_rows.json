@@ -1,0 +1,332 @@
+[
+  {
+    "section": 3,
+    "rightPoint": 3,
+    "leftPoint": 5,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.665,
+    "leftToEdgeM": 0.1,
+    "rightToCenterMm": 3415.0,
+    "leftToCenterMm": 2850.0
+  },
+  {
+    "section": 6,
+    "rightPoint": 6,
+    "leftPoint": 8,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.309,
+    "leftToEdgeM": 0.1,
+    "rightToCenterMm": 3059.0,
+    "leftToCenterMm": 2850.0
+  },
+  {
+    "section": 9,
+    "rightPoint": 9,
+    "leftPoint": 11,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.1,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 2850.0
+  },
+  {
+    "section": 12,
+    "rightPoint": 12,
+    "leftPoint": 14,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.1,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 2850.0
+  },
+  {
+    "section": 15,
+    "rightPoint": 15,
+    "leftPoint": 17,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.1,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 2850.0
+  },
+  {
+    "section": 18,
+    "rightPoint": 18,
+    "leftPoint": 20,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.096,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 2846.0
+  },
+  {
+    "section": 21,
+    "rightPoint": 21,
+    "leftPoint": 23,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.378,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 3128.0
+  },
+  {
+    "section": 24,
+    "rightPoint": 24,
+    "leftPoint": 26,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.533,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 3283.0
+  },
+  {
+    "section": 27,
+    "rightPoint": 27,
+    "leftPoint": 29,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.092,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 2842.0
+  },
+  {
+    "section": 30,
+    "rightPoint": 30,
+    "leftPoint": 32,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.319,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 3069.0
+  },
+  {
+    "section": 33,
+    "rightPoint": 33,
+    "leftPoint": 35,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.104,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 2854.0
+  },
+  {
+    "section": 36,
+    "rightPoint": 36,
+    "leftPoint": 38,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.104,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 2854.0
+  },
+  {
+    "section": 39,
+    "rightPoint": 39,
+    "leftPoint": 41,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.104,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 2854.0
+  },
+  {
+    "section": 42,
+    "rightPoint": 42,
+    "leftPoint": 44,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.277,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 3027.0
+  },
+  {
+    "section": 45,
+    "rightPoint": 45,
+    "leftPoint": 47,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.252,
+    "leftToEdgeM": 0.471,
+    "rightToCenterMm": 3002.0,
+    "leftToCenterMm": 3221.0
+  },
+  {
+    "section": 48,
+    "rightPoint": 48,
+    "leftPoint": 50,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.26,
+    "leftToEdgeM": 0.612,
+    "rightToCenterMm": 3010.0,
+    "leftToCenterMm": 3362.0
+  },
+  {
+    "section": 51,
+    "rightPoint": 51,
+    "leftPoint": 53,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.25,
+    "leftToEdgeM": 0.435,
+    "rightToCenterMm": 3000.0,
+    "leftToCenterMm": 3185.0
+  },
+  {
+    "section": 54,
+    "rightPoint": 54,
+    "leftPoint": 56,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 0.342,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 3092.0
+  },
+  {
+    "section": 57,
+    "rightPoint": 57,
+    "leftPoint": 59,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 0.331,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 3081.0
+  },
+  {
+    "section": 60,
+    "rightPoint": 60,
+    "leftPoint": 62,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 0.4,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 3150.0
+  },
+  {
+    "section": 63,
+    "rightPoint": 63,
+    "leftPoint": 65,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 0.374,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 3124.0
+  },
+  {
+    "section": 66,
+    "rightPoint": 66,
+    "leftPoint": 68,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 0.386,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 3136.0
+  },
+  {
+    "section": 69,
+    "rightPoint": 69,
+    "leftPoint": 71,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 0.278,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 3028.0
+  },
+  {
+    "section": 72,
+    "rightPoint": 72,
+    "leftPoint": 74,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 0.25,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 3000.0
+  },
+  {
+    "section": 75,
+    "rightPoint": 75,
+    "leftPoint": 77,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 0.304,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 3054.0
+  },
+  {
+    "section": 78,
+    "rightPoint": 78,
+    "leftPoint": 80,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 0.236,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 2986.0
+  },
+  {
+    "section": 81,
+    "rightPoint": 81,
+    "leftPoint": 83,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 0.662,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 3412.0
+  },
+  {
+    "section": 84,
+    "rightPoint": 84,
+    "leftPoint": 86,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 0.981,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 3731.0
+  },
+  {
+    "section": 87,
+    "rightPoint": 87,
+    "leftPoint": 89,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 1.41,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 4160.0
+  },
+  {
+    "section": 90,
+    "rightPoint": 90,
+    "leftPoint": 92,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 1.968,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 4718.0
+  },
+  {
+    "section": 93,
+    "rightPoint": 93,
+    "leftPoint": 95,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.248,
+    "leftToEdgeM": 1.567,
+    "rightToCenterMm": 2998.0,
+    "leftToCenterMm": 4317.0
+  },
+  {
+    "section": 96,
+    "rightPoint": 96,
+    "leftPoint": 98,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.24949999999999983,
+    "leftToEdgeM": 0.24949999999999983,
+    "rightToCenterMm": 2999.5,
+    "leftToCenterMm": 2999.5
+  },
+  {
+    "section": 99,
+    "rightPoint": 99,
+    "leftPoint": 101,
+    "Wd": 5.5,
+    "rightToEdgeM": 0.25,
+    "leftToEdgeM": 0.25,
+    "rightToCenterMm": 3000.0,
+    "leftToCenterMm": 3000.0
+  }
+]
