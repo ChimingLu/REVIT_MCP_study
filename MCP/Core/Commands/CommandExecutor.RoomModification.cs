@@ -33,7 +33,6 @@ namespace RevitMCP.Core
     {
         #region 批次修改房間高度
 
-        private const double FEET_TO_MM = 304.8;
         private const double MIN_HEIGHT_MM = 1.0;
         private const double MAX_HEIGHT_MM = 10000.0;
 

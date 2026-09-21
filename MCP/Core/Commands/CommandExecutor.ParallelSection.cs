@@ -516,11 +516,10 @@ namespace RevitMCP.Core
 
         private string EnsureUniqueViewName(Document doc, string baseName)
         {
-            var existing = new FilteredElementCollector(doc)
+            var existing = new HashSet<string>(new FilteredElementCollector(doc)
                 .OfClass(typeof(View))
                 .Cast<View>()
-                .Select(v => v.Name)
-                .ToHashSet();
+                .Select(v => v.Name), StringComparer.OrdinalIgnoreCase);
 
             if (!existing.Contains(baseName)) return baseName;
             for (int i = 2; i < 200; i++)

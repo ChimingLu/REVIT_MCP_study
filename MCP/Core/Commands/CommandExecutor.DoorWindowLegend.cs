@@ -777,9 +777,9 @@ namespace RevitMCP.Core
         	Dictionary<string, DoorWindowLegendTypeInfo> dictionary = (from t in desiredTypes
         		group t by BuildDoorWindowLegendItemKey(targetType, t.TypeId, t.SillHeightCm)).ToDictionary((IGrouping<string, DoorWindowLegendTypeInfo> g) => g.Key, (IGrouping<string, DoorWindowLegendTypeInfo> g) => g.First());
         	HashSet<IdType> hashSet = new HashSet<IdType>(desiredTypes.Select((DoorWindowLegendTypeInfo t) => t.TypeId.GetIdValue()));
-        	HashSet<string> existingKeys = (from i in list3
+        	HashSet<string> existingKeys = new HashSet<string>((from i in list3
         		where !string.IsNullOrWhiteSpace(i.Key)
-        		select i.Key).ToHashSet();
+        		select i.Key), StringComparer.OrdinalIgnoreCase);
         	List<DoorWindowLegendTypeInfo> list4 = desiredTypes.Where((DoorWindowLegendTypeInfo t) => !existingKeys.Contains(BuildDoorWindowLegendItemKey(targetType, t.TypeId, t.SillHeightCm))).ToList();
         	List<DoorWindowLegendExistingItem> list5 = new List<DoorWindowLegendExistingItem>();
         	List<object> list6 = new List<object>();
@@ -1073,8 +1073,8 @@ namespace RevitMCP.Core
         			}
         			else
         			{
-        				HashSet<IdType> seedOriginalIdValues = (from id in list2.Where(IsValidElementId)
-        					select id.GetIdValue()).ToHashSet();
+        				HashSet<IdType> seedOriginalIdValues = new HashSet<IdType>((from id in list2.Where(IsValidElementId)
+        					select id.GetIdValue()));
         				ElementId val5 = (from id in CollectLegendComponentIds(doc, val4)
         					where seedOriginalIdValues.Contains(id.GetIdValue())
         					select id).ToList().FirstOrDefault((ElementId id) => IsValidElementId(id) && doc.GetElement(id) != null);
@@ -1395,10 +1395,11 @@ namespace RevitMCP.Core
         private string BuildUniqueLegendName(Document doc, string baseName)
         {
         	//IL_0001: Unknown result type (might be due to invalid IL or missing references)
-        	if (!(from View v in (IEnumerable)new FilteredElementCollector(doc).OfClass(typeof(View))
+        	HashSet<string> existingNames = new HashSet<string>((from View v in (IEnumerable)new FilteredElementCollector(doc).OfClass(typeof(View))
         		select ((Element)v).Name into n
         		where !string.IsNullOrWhiteSpace(n)
-        		select n).ToHashSet(StringComparer.OrdinalIgnoreCase).Contains(baseName))
+        		select n), StringComparer.OrdinalIgnoreCase);
+        	if (!existingNames.Contains(baseName))
         	{
         		return baseName;
         	}
@@ -1955,8 +1956,8 @@ namespace RevitMCP.Core
         	{
         		return ElementId.InvalidElementId;
         	}
-        	HashSet<IdType> existingLegendComponentIds = (from id in CollectLegendComponentIds(doc, legendView)
-        		select id.GetIdValue()).ToHashSet();
+        	HashSet<IdType> existingLegendComponentIds = new HashSet<IdType>((from id in CollectLegendComponentIds(doc, legendView)
+        		select id.GetIdValue()));
         	ICollection<ElementId> collection = ElementTransformUtils.CopyElement(doc, sourceComponentId, translation);
         	doc.Regenerate();
         	ElementId val = CollectLegendComponentIds(doc, legendView).FirstOrDefault((ElementId id) => !existingLegendComponentIds.Contains(id.GetIdValue()));
@@ -3035,8 +3036,8 @@ namespace RevitMCP.Core
         	//IL_0168: Unknown result type (might be due to invalid IL or missing references)
         	DoorWindowLegendDeleteResult doorWindowLegendDeleteResult = new DoorWindowLegendDeleteResult();
         	List<ElementId> list = CollectDoorWindowLegendItemRelatedElementIds(doc, legendView, item, targetType);
-        	HashSet<IdType> legendComponentIdValues = (from id in CollectLegendComponentIds(doc, legendView).Where(IsValidElementId)
-        		select id.GetIdValue()).ToHashSet();
+        	HashSet<IdType> legendComponentIdValues = new HashSet<IdType>((from id in CollectLegendComponentIds(doc, legendView).Where(IsValidElementId)
+        		select id.GetIdValue()));
         	doorWindowLegendDeleteResult.DeleteElementIds = (from id in list.Where(IsValidElementId)
         		select id.GetIdValue()).ToList();
         	SubTransaction val = new SubTransaction(doc);

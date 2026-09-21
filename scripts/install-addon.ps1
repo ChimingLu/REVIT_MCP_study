@@ -172,7 +172,8 @@ $addonPath = $null
 $foundVersions = @()
 
 # 只檢查支援的版本（白名單方式，更安全）
-$supportedVersions = @("2026", "2025", "2024", "2023", "2022")
+# Revit 2020/2021 以相容模式支援，並使用統一多版本 csproj 建構
+$supportedVersions = @("2026", "2025", "2024", "2023", "2022", "2021", "2020")
 
 foreach ($version in $supportedVersions) {
     $testPath = Join-Path $appDataPath "Autodesk\Revit\Addins\$version"
@@ -231,6 +232,8 @@ Write-Host ""
 # 版本→組態對應表（統一建構，所有版本使用同一個 csproj）
 # ⚠️ 必須在 $sourceDllRelease 之前求值，否則 Strict Mode 下 $buildConfig 未定義
 $versionConfigMap = @{
+    "2020" = "Release.R20"
+    "2021" = "Release.R21"
     "2022" = "Release.R22"
     "2023" = "Release.R23"
     "2024" = "Release.R24"
@@ -358,6 +361,51 @@ catch {
     Write-Host "錯誤詳情：$_" -ForegroundColor Yellow
     Read-Host "按 Enter 結束"
     exit 1
+}
+
+# 複製 MCP.Contracts.dll 到 Loader 目錄，供 Loader 與 CoreRuntime 共用
+$sourceContracts = Join-Path $projectRoot "MCP\bin\$buildConfig\MCP.Contracts.dll"
+if (Test-Path $sourceContracts) {
+    try {
+        Copy-Item -Path $sourceContracts -Destination (Join-Path $dllDestDir "MCP.Contracts.dll") -Force -ErrorAction Stop
+        Write-Host "✓ 已複製 MCP.Contracts.dll → RevitMCP\" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "⚠️  警告：無法複製 MCP.Contracts.dll（可能導致 CoreRuntime 載入失敗）" -ForegroundColor Yellow
+    }
+}
+else {
+    Write-Host "⚠️  警告：找不到 MCP.Contracts.dll，CoreRuntime 可能無法正常載入" -ForegroundColor Yellow
+}
+
+# 複製熱重載 runtime 目錄所需檔案
+$sourceRuntimeRoot = Join-Path $projectRoot "MCP\bin\$buildConfig"
+$runtimeDestDir = Join-Path $dllDestDir "runtime"
+if (-not (Test-Path $runtimeDestDir)) { New-Item -ItemType Directory -Path $runtimeDestDir -Force | Out-Null }
+
+Get-ChildItem -Path $sourceRuntimeRoot -File |
+    Where-Object {
+        $_.Extension -in @('.dll', '.pdb', '.json') -and
+        $_.Name -notin @('RevitMCP.dll', 'RevitMCP.pdb', 'MCP.Contracts.dll', 'MCP.Contracts.pdb')
+    } |
+    ForEach-Object {
+        try {
+            Copy-Item -Path $_.FullName -Destination (Join-Path $runtimeDestDir $_.Name) -Force -ErrorAction Stop
+        }
+        catch {
+            Write-Host "⚠️  警告：無法複製 $($_.Name) 到 runtime\" -ForegroundColor Yellow
+        }
+    }
+
+$coreRuntimeSource = Join-Path $sourceRuntimeRoot "RevitMCP.CoreRuntime.dll"
+if (Test-Path $coreRuntimeSource) {
+    try {
+        Copy-Item -Path $coreRuntimeSource -Destination (Join-Path $runtimeDestDir "RevitMCP.CoreRuntime.dll") -Force -ErrorAction Stop
+        Write-Host "✓ 已複製 RevitMCP.CoreRuntime.dll → RevitMCP\runtime\" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "⚠️  警告：無法複製 RevitMCP.CoreRuntime.dll 到 runtime\" -ForegroundColor Yellow
+    }
 }
 
 # 複製 ADDIN

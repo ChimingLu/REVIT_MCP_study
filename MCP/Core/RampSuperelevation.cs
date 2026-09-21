@@ -27,7 +27,7 @@ namespace RevitMCP.Core
             Element elem = doc.GetElement(new ElementId(floorId));
             if (!(elem is Floor floor)) return new { Success = false, Message = "無效的 Floor" };
 
-            SlabShapeEditor editor = floor.SlabShapeEditor;
+            SlabShapeEditor editor = GetFloorSlabShapeEditor(floor);
             if (editor == null) return new { Success = false, Message = "不支援 SlabShapeEditor" };
 
             bool wasEnabled = editor.IsEnabled;
@@ -78,7 +78,7 @@ namespace RevitMCP.Core
             Element elem = doc.GetElement(new ElementId(floorId));
             if (!(elem is Floor floor)) return new { Success = false, Message = "無效的 Floor" };
 
-            SlabShapeEditor editor = floor.SlabShapeEditor;
+            SlabShapeEditor editor = GetFloorSlabShapeEditor(floor);
             if (editor == null) return new { Success = false, Message = "不支援 SlabShapeEditor" };
 
             JArray offsetsJson = parameters["offsets"] as JArray;
@@ -141,7 +141,7 @@ namespace RevitMCP.Core
             Element elem = doc.GetElement(new ElementId(floorId));
             if (!(elem is Floor floor)) return new { Success = false, Message = "無效的 Floor" };
 
-            SlabShapeEditor editor = floor.SlabShapeEditor;
+            SlabShapeEditor editor = GetFloorSlabShapeEditor(floor);
             if (editor == null) return new { Success = false, Message = "不支援 SlabShapeEditor" };
 
             var rawElev = new Dictionary<int, double>
@@ -496,6 +496,15 @@ namespace RevitMCP.Core
             foreach (SlabShapeVertex v in editor.SlabShapeVertices)
                 map[idx++] = v;
             return map;
+        }
+
+        private static SlabShapeEditor GetFloorSlabShapeEditor(Floor floor)
+        {
+#if REVIT2026_OR_GREATER
+            return floor.GetSlabShapeEditor();
+#else
+            return floor.SlabShapeEditor;
+#endif
         }
 
         private class GeoPointInfo

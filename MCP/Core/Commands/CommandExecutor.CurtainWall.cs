@@ -2377,8 +2377,8 @@ namespace RevitMCP.Core
         {
             try
             {
-                HashSet<ElementId> allTemplateParams = template.GetTemplateParameterIds().ToHashSet();
-                HashSet<ElementId> nonControlled = template.GetNonControlledTemplateParameterIds().ToHashSet();
+                HashSet<ElementId> allTemplateParams = new HashSet<ElementId>(template.GetTemplateParameterIds());
+                HashSet<ElementId> nonControlled = new HashSet<ElementId>(template.GetNonControlledTemplateParameterIds());
 
                 foreach (BuiltInParameter bip in Enum.GetValues(typeof(BuiltInParameter)))
                 {
