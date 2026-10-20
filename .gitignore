@@ -3,8 +3,6 @@ MCP/MCP/bin/
 MCP/MCP/obj/
 MCP-Server/build/
 MCP-Server/node_modules/
-MCP.Contracts/
-MCP.CoreRuntime/
 
 # Secrets / credentials — NEVER commit tokens or API keys
 .env

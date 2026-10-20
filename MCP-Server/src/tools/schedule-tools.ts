@@ -7,13 +7,50 @@ import { Tool } from "@modelcontextprotocol/sdk/types.js";
 export const scheduleTools: Tool[] = [
     {
         name: "create_view_schedule",
-        description: "在 Revit 中建立一個新的視圖明細表（Schedule/Quantities）。可以指定名稱、品類以及要包含的欄位。",
+        description: "在 Revit 中建立一個新的視圖明細表（Schedule/Quantities）。可指定品類、欄位、是否包含連結檔中的元素、篩選、排序／群組、是否逐項列舉與加總欄位。欄位名稱要用專案介面語言的名稱（中文 Revit 用「類型」「面積」等）；找不到的欄位會列在 MissingFields，不會自行補值。指定的品類解析不到時直接報錯（不會變成多品類明細表）。",
         inputSchema: {
             type: "object",
             properties: {
                 name: { type: "string", description: "明細表名稱" },
-                category: { type: "string", description: "品類名稱（如：'Walls', 'Rooms', 'Pipes'）" },
-                fields: { type: "array", items: { type: "string" }, description: "欄位名稱列表" },
+                category: { type: "string", description: "品類名稱：介面名稱（如「帷幕板」「欄杆扶手」）或 BuiltInCategory 名稱（如 'Walls', 'CurtainWallPanels', 'StairsRailing'）。省略則建立多品類明細表" },
+                fields: { type: "array", items: { type: "string" }, description: "欄位名稱列表；「計數」「Count」「數量」對應數量欄位" },
+                includeLinkedFiles: { type: "boolean", description: "是否包含連結檔中的元素（明細表性質 → 欄位 → 包含連結檔中的元素），預設 false" },
+                filters: {
+                    type: "array",
+                    description: "篩選條件；欄位不在 fields 內時會自動加入並隱藏。長度欄位的數值以 mm 輸入",
+                    items: {
+                        type: "object",
+                        properties: {
+                            field: { type: "string", description: "欄位名稱" },
+                            operator: { type: "string", enum: ["equals", "not_equals", "contains", "not_contains", "begins_with", "greater_than", "less_than", "has_value", "has_no_value"], description: "運算子" },
+                            value: { type: "string", description: "比對值（has_value／has_no_value 不需要）" },
+                        },
+                        required: ["field", "operator"],
+                    },
+                },
+                sortGroupFields: {
+                    type: "array",
+                    description: "排序／群組欄位，依序套用；可給欄位名稱字串，或 {field, descending, showHeader, showFooter, showBlankLine}",
+                    items: {
+                        anyOf: [
+                            { type: "string" },
+                            {
+                                type: "object",
+                                properties: {
+                                    field: { type: "string" },
+                                    descending: { type: "boolean" },
+                                    showHeader: { type: "boolean" },
+                                    showFooter: { type: "boolean" },
+                                    showBlankLine: { type: "boolean" },
+                                },
+                                required: ["field"],
+                            },
+                        ],
+                    },
+                },
+                itemized: { type: "boolean", description: "是否逐項列舉每個實體；false 時同一群組合併成一列" },
+                showGrandTotal: { type: "boolean", description: "是否顯示總計（含數量）" },
+                totalFields: { type: "array", items: { type: "string" }, description: "要「計算總計」的欄位（如面積、長度、計數）" },
             },
             required: ["name"],
         },

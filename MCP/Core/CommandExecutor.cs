@@ -484,6 +484,9 @@ namespace RevitMCP.Core
                     case "get_curtain_wall_info":
                         result = GetCurtainWallInfo(parameters);
                         break;
+                    case "sync_curtain_panel_host_level":
+                        result = SyncCurtainPanelHostLevel(parameters);
+                        break;
                     case "get_curtain_panel_types":
                         result = GetCurtainPanelTypes(parameters);
                         break;
@@ -4297,44 +4300,146 @@ namespace RevitMCP.Core
             string scheduleName = parameters["name"]?.Value<string>() ?? "MCP製作的明細表";
             string categoryName = parameters["category"]?.Value<string>();
             var fieldNames = parameters["fields"]?.ToObject<List<string>>() ?? new List<string>();
+            bool includeLinkedFiles = parameters["includeLinkedFiles"]?.Value<bool>() ?? false;
+            bool? itemized = parameters["itemized"]?.Value<bool?>();
+            bool showGrandTotal = parameters["showGrandTotal"]?.Value<bool>() ?? false;
+            var sortGroup = parameters["sortGroupFields"] as JArray;
+            var totalFieldNames = parameters["totalFields"]?.ToObject<List<string>>() ?? new List<string>();
+            var filterSpecs = parameters["filters"] as JArray;
+
+            // 品類：先比對介面名稱，再比對 BuiltInCategory（CurtainWallPanels、StairsRailing…）。
+            // 指定了卻解析不到就報錯——舊版會靜默變成「多品類」明細表。
+            ElementId categoryId = ElementId.InvalidElementId;
+            if (!string.IsNullOrEmpty(categoryName))
+            {
+                categoryId = ResolveCategoryId(doc, categoryName);
+                if (categoryId == ElementId.InvalidElementId)
+                    throw new Exception($"找不到品類「{categoryName}」。可用 list_categories 查詢正確名稱；要建多品類明細表請不要傳 category。");
+            }
 
             using (Transaction trans = new Transaction(doc, "建立明細表"))
             {
                 trans.Start();
 
-                ElementId categoryId = ElementId.InvalidElementId;
-                if (!string.IsNullOrEmpty(categoryName))
+                ViewSchedule schedule = ViewSchedule.CreateSchedule(doc, categoryId);
+                schedule.Name = scheduleName;
+                ScheduleDefinition def = schedule.Definition;
+
+                var schedulableFields = def.GetSchedulableFields();
+                var addedFields = new List<string>();
+                var missingFields = new List<string>();
+                var fieldByName = new Dictionary<string, ScheduleField>(StringComparer.OrdinalIgnoreCase);
+
+                // 依名稱找可排程欄位；「計數／Count／數量」對應 ScheduleFieldType.Count
+                SchedulableField FindSchedulable(string fieldName)
                 {
-                    foreach (Category cat in doc.Settings.Categories)
+                    var sf = schedulableFields.FirstOrDefault(f =>
+                        f.GetName(doc).Equals(fieldName, StringComparison.OrdinalIgnoreCase));
+                    if (sf == null && (fieldName.Equals("Count", StringComparison.OrdinalIgnoreCase) || fieldName == "計數" || fieldName == "數量"))
+                        sf = schedulableFields.FirstOrDefault(f => f.FieldType == ScheduleFieldType.Count);
+                    return sf;
+                }
+
+                ScheduleField AddField(string fieldName, bool hidden)
+                {
+                    if (fieldByName.TryGetValue(fieldName, out var existing)) return existing;
+                    var sf = FindSchedulable(fieldName);
+                    if (sf == null) return null;
+                    var field = def.AddField(sf);
+                    if (hidden) field.IsHidden = true;
+                    fieldByName[fieldName] = field;
+                    return field;
+                }
+
+                foreach (string fieldName in fieldNames)
+                {
+                    if (AddField(fieldName, false) != null) addedFields.Add(fieldName);
+                    else missingFields.Add(fieldName);
+                }
+
+                // 包含連結檔中的元素
+                string linkedNote = null;
+                if (includeLinkedFiles)
+                {
+                    try { def.IncludeLinkedFiles = true; }
+                    catch (Exception ex) { linkedNote = "此品類不支援包含連結檔: " + ex.Message; }
+                }
+
+                // 篩選條件（篩選欄位不在 fields 內時自動加入並隱藏）
+                var appliedFilters = new List<string>();
+                var failedFilters = new List<string>();
+                if (filterSpecs != null)
+                {
+                    foreach (JObject spec in filterSpecs.OfType<JObject>())
                     {
-                        if (cat.Name.Equals(categoryName, StringComparison.OrdinalIgnoreCase))
+                        string fName = spec["field"]?.Value<string>();
+                        string op = spec["operator"]?.Value<string>() ?? "equals";
+                        string value = spec["value"]?.ToString() ?? "";
+                        string label = $"{fName} {op} {value}";
+                        ScheduleField field = string.IsNullOrEmpty(fName) ? null : AddField(fName, true);
+                        if (field == null) { failedFilters.Add(label + "（找不到欄位）"); continue; }
+                        if (!TryMapScheduleFilterType(op, out ScheduleFilterType filterType))
                         {
-                            categoryId = cat.Id;
-                            break;
+                            failedFilters.Add(label + "（不支援的運算子）");
+                            continue;
+                        }
+                        try
+                        {
+                            def.AddFilter(CreateScheduleFilter(field, filterType, value));
+                            appliedFilters.Add(label);
+                        }
+                        catch (Exception ex)
+                        {
+                            failedFilters.Add($"{label}（{ex.Message}）");
                         }
                     }
                 }
 
-                ViewSchedule schedule = ViewSchedule.CreateSchedule(doc, categoryId);
-                schedule.Name = scheduleName;
-
-                var schedulableFields = schedule.Definition.GetSchedulableFields();
-                var addedFields = new List<string>();
-                var missingFields = new List<string>();
-
-                foreach (string fieldName in fieldNames)
+                // 排序／群組（字串＝欄位名稱，或 {field, descending, showHeader, showFooter, showBlankLine}）
+                var appliedSortGroup = new List<string>();
+                var failedSortGroup = new List<string>();
+                if (sortGroup != null)
                 {
-                    var sf = schedulableFields.FirstOrDefault(f =>
-                        f.GetName(doc).Equals(fieldName, StringComparison.OrdinalIgnoreCase));
-                    if (sf != null)
+                    foreach (JToken token in sortGroup)
                     {
-                        schedule.Definition.AddField(sf);
-                        addedFields.Add(fieldName);
+                        string fName = token.Type == JTokenType.String ? token.Value<string>() : token["field"]?.Value<string>();
+                        if (string.IsNullOrEmpty(fName)) continue;
+                        bool wasListed = fieldByName.ContainsKey(fName);
+                        ScheduleField field = AddField(fName, false);
+                        if (field == null) { failedSortGroup.Add(fName); continue; }
+                        if (!wasListed) addedFields.Add(fName);
+                        bool descending = token.Type == JTokenType.Object && (token["descending"]?.Value<bool>() ?? false);
+                        var sgf = new ScheduleSortGroupField(field.FieldId, descending ? ScheduleSortOrder.Descending : ScheduleSortOrder.Ascending);
+                        if (token.Type == JTokenType.Object)
+                        {
+                            sgf.ShowHeader = token["showHeader"]?.Value<bool>() ?? false;
+                            sgf.ShowFooter = token["showFooter"]?.Value<bool>() ?? false;
+                            sgf.ShowBlankLine = token["showBlankLine"]?.Value<bool>() ?? false;
+                        }
+                        def.AddSortGroupField(sgf);
+                        appliedSortGroup.Add(fName);
                     }
-                    else
+                }
+
+                if (itemized.HasValue) def.IsItemized = itemized.Value;
+                if (showGrandTotal)
+                {
+                    def.ShowGrandTotal = true;
+                    def.ShowGrandTotalCount = true;
+                }
+
+                // 計算總計
+                var appliedTotals = new List<string>();
+                var failedTotals = new List<string>();
+                foreach (string fName in totalFieldNames)
+                {
+                    if (!fieldByName.TryGetValue(fName, out var field)) { failedTotals.Add(fName + "（不在欄位內）"); continue; }
+                    try
                     {
-                        missingFields.Add(fieldName);
+                        if (field.CanTotal()) { field.DisplayType = ScheduleFieldDisplayType.Totals; appliedTotals.Add(fName); }
+                        else failedTotals.Add(fName + "（此欄位不能加總）");
                     }
+                    catch (Exception ex) { failedTotals.Add($"{fName}（{ex.Message}）"); }
                 }
 
                 trans.Commit();
@@ -4343,12 +4448,66 @@ namespace RevitMCP.Core
                 {
                     ElementId = schedule.Id.GetIdValue(),
                     Name = schedule.Name,
-                    FieldCount = schedule.Definition.GetFieldCount(),
+                    Category = categoryId == ElementId.InvalidElementId ? "多品類" : Category.GetCategory(doc, categoryId)?.Name,
+                    FieldCount = def.GetFieldCount(),
                     AddedFields = addedFields,
                     MissingFields = missingFields,
+                    IncludeLinkedFiles = def.IncludeLinkedFiles,
+                    LinkedFilesNote = linkedNote,
+                    IsItemized = def.IsItemized,
+                    SortGroupFields = appliedSortGroup,
+                    FailedSortGroupFields = failedSortGroup,
+                    Filters = appliedFilters,
+                    FailedFilters = failedFilters,
+                    TotalFields = appliedTotals,
+                    FailedTotalFields = failedTotals,
                     Message = $"成功建立明細表: {schedule.Name}"
                 };
             }
+        }
+
+        private static bool TryMapScheduleFilterType(string op, out ScheduleFilterType type)
+        {
+            switch ((op ?? "").Trim().ToLowerInvariant())
+            {
+                case "equals": case "equal": case "=": type = ScheduleFilterType.Equal; return true;
+                case "not_equals": case "notequal": case "!=": type = ScheduleFilterType.NotEqual; return true;
+                case "contains": type = ScheduleFilterType.Contains; return true;
+                case "not_contains": case "notcontains": type = ScheduleFilterType.NotContains; return true;
+                case "begins_with": case "beginswith": type = ScheduleFilterType.BeginsWith; return true;
+                case "greater_than": case ">": type = ScheduleFilterType.GreaterThan; return true;
+                case "less_than": case "<": type = ScheduleFilterType.LessThan; return true;
+                case "has_value": case "hasvalue": type = ScheduleFilterType.HasValue; return true;
+                case "has_no_value": case "hasnovalue": type = ScheduleFilterType.HasNoValue; return true;
+                default: type = ScheduleFilterType.Equal; return false;
+            }
+        }
+
+        /// <summary>
+        /// 依欄位型別建立 ScheduleFilter：長度欄位的數值以 mm 輸入；其他數值欄位（含牆「功能」這類列舉）
+        /// 先試整數再試浮點；文字欄位用字串。
+        /// </summary>
+        private static ScheduleFilter CreateScheduleFilter(ScheduleField field, ScheduleFilterType type, string value)
+        {
+            if (type == ScheduleFilterType.HasValue || type == ScheduleFilterType.HasNoValue)
+                return new ScheduleFilter(field.FieldId, type);
+
+            if (double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number))
+            {
+                ForgeTypeId spec = null;
+                try { spec = field.GetSpecTypeId(); } catch { }
+                if (spec != null && spec == SpecTypeId.Length)
+                    return new ScheduleFilter(field.FieldId, type, UnitUtils.ConvertToInternalUnits(number, UnitTypeId.Millimeters));
+                if (spec == null || spec != SpecTypeId.String.Text)
+                {
+                    if (Math.Abs(number - Math.Round(number)) < 1e-9)
+                    {
+                        try { return new ScheduleFilter(field.FieldId, type, (int)Math.Round(number)); } catch { }
+                    }
+                    return new ScheduleFilter(field.FieldId, type, number);
+                }
+            }
+            return new ScheduleFilter(field.FieldId, type, value);
         }
 
         #endregion

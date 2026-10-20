@@ -22,7 +22,7 @@ namespace RevitMCP.Commands
             {
                 // 以 IsRunning 判斷開/關 (而非 IsConnected)：服務已啟動但尚無 client 連入時 IsConnected=false，
                 // 若用 IsConnected 判斷，再按一下會誤判為「啟動」而非「停止」。
-                bool running = Application.SocketService != null && Application.SocketService.IsRunning;
+                bool running = Application.IsServiceRunning();
 
                 if (running)
                 {
@@ -77,9 +77,9 @@ namespace RevitMCP.Commands
                     $"配置檔位置:\n" +
                     $"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\\RevitMCP\\config.json";
 
-                if (Application.SocketService?.IsRunning == true)
+                if (Application.RuntimeManager != null &&
+                    Application.RuntimeManager.TryGetConnectionStatus(out bool locked, out string clientName, out string remote, out DateTime? sinceUtc))
                 {
-                    var (locked, clientName, remote, sinceUtc) = Application.SocketService.GetStatusSnapshot();
                     string clientDisplay = string.IsNullOrEmpty(clientName)
                         ? (remote ?? "—")
                         : (clientName + " (" + (remote ?? "?") + ")");
@@ -115,14 +115,13 @@ namespace RevitMCP.Commands
         {
             try
             {
-                var svc = Application.SocketService;
-                if (svc == null || !svc.IsRunning)
+                if (!Application.IsServiceRunning())
                 {
                     TaskDialog.Show("切換/釋放連線", "MCP 服務尚未啟動。");
                     return Result.Succeeded;
                 }
 
-                var (released, prev) = svc.SwitchConnection();
+                bool released = Application.RuntimeManager.SwitchConnection(out string prev);
                 TaskDialog.Show("切換/釋放連線", released
                     ? ("已釋放連線（原客戶端 " + prev + "）。\n\n下一個重新連線的客戶端將取得連線。\n無法保證是特定客戶端——若要切換到另一個客戶端，請先讓目前客戶端停止重連。")
                     : "目前沒有已鎖定的連線。下一個連入的客戶端會直接取得連線。");
@@ -132,6 +131,43 @@ namespace RevitMCP.Commands
             {
                 message = ex.Message;
                 TaskDialog.Show("錯誤", "切換/釋放連線失敗: " + ex.Message);
+                return Result.Failed;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Core 重載命令（熱重載，opt-in）：卸載並重新載入 runtime\RevitMCP.CoreRuntime.dll，不重啟 Revit。
+    /// 服務原本在執行就會自動重新啟動；AI 客戶端會自動重連。
+    /// </summary>
+    [Transaction(TransactionMode.Manual)]
+    public class ReloadCoreCommand : IExternalCommand
+    {
+        public Result Execute(
+            ExternalCommandData commandData,
+            ref string message,
+            ElementSet elements)
+        {
+            try
+            {
+                bool runningBefore = Application.IsServiceRunning();
+                if (!Application.ReloadCore(commandData.Application))
+                {
+                    message = "Core 重載失敗";
+                    TaskDialog.Show("Core 重載", "Core 重載失敗，請檢查日誌。");
+                    return Result.Failed;
+                }
+
+                TaskDialog.Show("Core 重載",
+                    "Core 已重載。\n\n" +
+                    "重載前服務執行中: " + (runningBefore ? "是" : "否") + "\n" +
+                    "重載後服務執行中: " + (Application.IsServiceRunning() ? "是" : "否"));
+                return Result.Succeeded;
+            }
+            catch (Exception ex)
+            {
+                message = ex.Message;
+                TaskDialog.Show("錯誤", "Core 重載失敗: " + ex.Message);
                 return Result.Failed;
             }
         }

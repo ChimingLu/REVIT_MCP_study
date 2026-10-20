@@ -14,7 +14,11 @@ namespace RevitMCP
 {
     public class Application : IExternalApplication
     {
-        private static SocketService _socketService;
+        // 熱重載（opt-in，移植自 feature/core-reload-patch）：Loader 不再直接持有 SocketService，
+        // WebSocket 服務與命令分派都在可重載的 RevitMCP.CoreRuntime.dll 內，由 CoreRuntimeManager 載入／卸載。
+        private static CoreRuntimeManager _runtimeManager;
+        private static ExternalEvent _reloadExternalEvent;
+        private static ReloadCoreEventHandler _reloadEventHandler;
         private static UIApplication _uiApp;
         private static CameraManagerPanelControl _cameraManagerPanel;
 
@@ -35,7 +39,7 @@ namespace RevitMCP
         /// <summary>2026-09-25：ViewActivated 發生過 → 下次 Idling 檢查作用中視圖是否為透視相機，是就讓 ③ 位置圖跟隨。</summary>
         private static bool _cameraManagerActiveViewPending;
 
-        public static SocketService SocketService => _socketService;
+        public static CoreRuntimeManager RuntimeManager => _runtimeManager;
         public static UIApplication UIApp => _uiApp;
         public static PushButton ToggleButton { get; private set; }
 
@@ -70,7 +74,12 @@ namespace RevitMCP
 
                 // 初始化配置管理器
                 _ = ConfigManager.Instance;
-                
+                _runtimeManager = new CoreRuntimeManager();
+
+                // Core 熱重載的 ExternalEvent（必須在 Startup／UI 執行緒建立）
+                _reloadEventHandler = new ReloadCoreEventHandler();
+                _reloadExternalEvent = ExternalEvent.Create(_reloadEventHandler);
+
                 // 記錄啟動
                 Logger.Info("RevitMCP Plugin 正在啟動...");
 
@@ -128,6 +137,15 @@ namespace RevitMCP
                     "RevitMCP.Commands.CameraManagerCommand");
                 cameraManagerButtonData.ToolTip = "顯示相機管理停靠面板：檢視所有透視相機的離樓板高度、在平面上的位置，並可編輯、複製、匯出";
                 panel.AddItem(cameraManagerButtonData);
+
+                // 6. Core 重載按鈕（熱重載：不重啟 Revit 即換上新編譯的 RevitMCP.CoreRuntime.dll）
+                PushButtonData reloadButtonData = new PushButtonData(
+                    "ReloadCore",
+                    "Core\n重載",
+                    assemblyPath,
+                    "RevitMCP.Commands.ReloadCoreCommand");
+                reloadButtonData.ToolTip = "重新載入 runtime\\RevitMCP.CoreRuntime.dll（不重啟 Revit）";
+                panel.AddItem(reloadButtonData);
 
                 // 初始化 ExternalEventManager (必須在 UI 執行緒建立)
                 _ = ExternalEventManager.Instance;
@@ -654,7 +672,7 @@ namespace RevitMCP
         /// </summary>
         public static void RequestToggleButtonIconRefresh()
         {
-            ApplyToggleButtonState(_socketService != null && _socketService.IsRunning);
+            ApplyToggleButtonState(IsServiceRunning());
             _toggleIconRecheckTicks = ToggleIconRecheckTicks;
         }
 
@@ -662,7 +680,7 @@ namespace RevitMCP
         {
             if (_toggleIconRecheckTicks <= 0) return;
             _toggleIconRecheckTicks--;
-            ApplyToggleButtonState(_socketService != null && _socketService.IsRunning);
+            ApplyToggleButtonState(IsServiceRunning());
         }
 
         private static void OnCameraManagerIdling(object sender, Autodesk.Revit.UI.Events.IdlingEventArgs e)
@@ -924,11 +942,7 @@ namespace RevitMCP
         {
             try
             {
-                if (_socketService != null)
-                {
-                    _socketService.Stop();
-                    _socketService = null;
-                }
+                _runtimeManager?.Shutdown();
             }
             catch (Exception ex)
             {
@@ -936,34 +950,35 @@ namespace RevitMCP
             }
         }
 
+        public static bool IsServiceRunning()
+        {
+            try { return _runtimeManager != null && _runtimeManager.IsRunning; }
+            catch { return false; }
+        }
+
+        public static bool IsServiceConnected()
+        {
+            try { return _runtimeManager != null && _runtimeManager.IsConnected; }
+            catch { return false; }
+        }
+
         /// <summary>
-        /// 啟動 MCP 服務
+        /// 啟動 MCP 服務（載入 CoreRuntime 後由它建立 SocketService）
         /// </summary>
         public static void StartMCPService(UIApplication uiApp)
         {
             try
             {
                 _uiApp = uiApp;
-                var settings = ConfigManager.Instance.Settings;
+                _runtimeManager.SetUIApplication(uiApp);
 
-                if (_socketService != null && _socketService.IsRunning)
+                if (_runtimeManager.IsRunning)
                 {
                     TaskDialog.Show("MCP 服務", "服務已在執行中。");
                     return;
                 }
 
-                // 建立 Socket 服務
-                _socketService = new SocketService(settings);
-
-                // 訂閱命令接收事件
-                _socketService.CommandReceived += OnCommandReceived;
-
-                // 啟動服務
-                _socketService.StartAsync().ConfigureAwait(false);
-
-                // 更新設定
-                settings.IsEnabled = true;
-                ConfigManager.Instance.SaveSettings();
+                _runtimeManager.StartService();
             }
             catch (Exception ex)
             {
@@ -978,15 +993,7 @@ namespace RevitMCP
         {
             try
             {
-                if (_socketService != null)
-                {
-                    _socketService.Stop();
-                    _socketService = null;
-                }
-
-                var settings = ConfigManager.Instance.Settings;
-                settings.IsEnabled = false;
-                ConfigManager.Instance.SaveSettings();
+                _runtimeManager?.StopService();
             }
             catch (Exception ex)
             {
@@ -995,33 +1002,72 @@ namespace RevitMCP
         }
 
         /// <summary>
-        /// 處理接收到的命令
+        /// 在 Revit UI 執行緒上重載 CoreRuntime（ribbon「Core 重載」按鈕）。
         /// </summary>
-        private static async void OnCommandReceived(object sender, Models.RevitCommandRequest request)
+        public static bool ReloadCore(UIApplication uiApp)
         {
-            // 使用外部事件在 Revit UI 執行緒執行命令
-            ExternalEventManager.Instance.ExecuteCommand((uiApp) =>
+            try
             {
-                try
-                {
-                    var executor = new CommandExecutor(uiApp  );
-                    var response = executor.ExecuteCommand(request);
-
-                    // 發送回應
-                    _socketService?.SendResponseAsync(response).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    var errorResponse = new Models.RevitCommandResponse
-                    {
-                        Success = false,
-                        Error = ex.Message,
-                        RequestId = request.RequestId
-                    };
-
-                    _socketService?.SendResponseAsync(errorResponse).ConfigureAwait(false);
-                }
-            });
+                if (uiApp != null) _uiApp = uiApp;
+                if (_uiApp == null) return false;
+                _runtimeManager.SetUIApplication(_uiApp);
+                _runtimeManager.ReloadCore();
+                RequestToggleButtonIconRefresh();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("ReloadCore 失敗: " + ex.Message, ex);
+                return false;
+            }
         }
+
+        /// <summary>
+        /// 從背景執行緒（CoreRuntime 收到 reload_core 命令）安全地觸發重載：
+        /// 只 Raise ExternalEvent，實際 ReloadCore() 在 Revit UI 執行緒執行。
+        /// </summary>
+        public static void RequestReloadCoreFromBackground()
+        {
+            if (_reloadExternalEvent == null)
+            {
+                Logger.Error("ReloadExternalEvent 尚未初始化");
+                return;
+            }
+            _reloadEventHandler.SetRuntimeManager(_runtimeManager, _uiApp);
+            _reloadExternalEvent.Raise();
+        }
+    }
+
+    /// <summary>
+    /// 從背景執行緒重載 CoreRuntime 用的 ExternalEvent handler；Execute() 在 Revit UI 執行緒執行。
+    /// </summary>
+    internal class ReloadCoreEventHandler : IExternalEventHandler
+    {
+        private CoreRuntimeManager _runtimeManager;
+        private UIApplication _uiApp;
+
+        public void SetRuntimeManager(CoreRuntimeManager runtimeManager, UIApplication uiApp)
+        {
+            _runtimeManager = runtimeManager;
+            _uiApp = uiApp;
+        }
+
+        public void Execute(UIApplication app)
+        {
+            try
+            {
+                if (_runtimeManager == null) return;
+                _runtimeManager.SetUIApplication(_uiApp ?? app);
+                _runtimeManager.ReloadCore();
+                Application.RequestToggleButtonIconRefresh();
+                Logger.Info("CoreRuntime 熱重載完成（ExternalEvent UI 執行緒）");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("ReloadCoreEventHandler.Execute 失敗: " + ex.Message, ex);
+            }
+        }
+
+        public string GetName() => "RevitMCP CoreRuntime Reload";
     }
 }

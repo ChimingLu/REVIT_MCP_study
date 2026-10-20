@@ -27,4 +27,29 @@
     <Resource Include="Resources\icon-32-off.png" />
   </ItemGroup>
 
+  <!-- 熱重載（opt-in，移植自 feature/core-reload-patch）：Loader 只依賴 MCP.Contracts，
+       WebSocket 服務與命令分派在 runtime\RevitMCP.CoreRuntime.dll，可用 ribbon「Core 重載」換新。 -->
+  <ItemGroup>
+    <ProjectReference Include="..\MCP.Contracts\MCP.Contracts.csproj" />
+  </ItemGroup>
+
+  <Target Name="BuildCoreRuntime" BeforeTargets="Build">
+    <MSBuild
+      Projects="..\MCP.CoreRuntime\MCP.CoreRuntime.csproj"
+      Targets="Restore;Build"
+      Properties="Configuration=$(Configuration)" />
+  </Target>
+
+  <Target Name="CopyCoreRuntimeArtifacts" AfterTargets="Build">
+    <ItemGroup>
+      <!-- CoreRuntime 與它的相依 DLL（ClosedXML 等）一起放進 runtime\，熱重載的 shadow-copy 才解析得到 -->
+      <CoreRuntimeArtifacts Include="..\MCP.CoreRuntime\bin\$(Configuration)\**\*.dll"
+                            Exclude="..\MCP.CoreRuntime\bin\$(Configuration)\**\MCP.Contracts.dll" />
+    </ItemGroup>
+    <MakeDir Directories="$(OutDir)runtime" />
+    <!-- MCP.Contracts.dll 必須只留在 Loader 目錄：runtime\ 內若有一份，會載成不同型別而轉型失敗 -->
+    <Delete Files="$(OutDir)runtime\MCP.Contracts.dll" ContinueOnError="true" />
+    <Copy SourceFiles="@(CoreRuntimeArtifacts)" DestinationFolder="$(OutDir)runtime" SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>

@@ -17,6 +17,19 @@ export const curtainWallTools: Tool[] = [
         },
     },
     {
+        name: "sync_curtain_panel_host_level",
+        description: "把每片帷幕嵌板（含以基本牆充當的嵌板，例如鋁板）所屬帷幕牆的樓層名稱，寫進嵌板上的指定參數（預設「牆樓層」），讓帷幕板明細表可以依樓層分組。帷幕板品類本身沒有樓層欄位。可重跑：值已相同會跳過，模型更新後再執行一次即可同步。預設 dryRun=true 只回報數量；嵌板位於模型群組內時，該共用參數須設為「值可依群組實體變化」，否則會計入 Failed。寫入的值是帷幕牆的底部約束樓層，不是推算值。",
+        inputSchema: {
+            type: "object",
+            properties: {
+                parameterName: { type: "string", description: "要寫入的嵌板參數名稱（文字或樓層類型），預設「牆樓層」" },
+                dryRun: { type: "boolean", description: "true（預設）只預覽數量不寫入；false 才實際寫入" },
+                includeHostWall: { type: "boolean", description: "是否也把樓層寫到帷幕牆本身的同名參數，預設 false" },
+                levelName: { type: "string", description: "只處理底部約束為此樓層的帷幕牆（選填，可用於分批）" },
+            },
+        },
+    },
+    {
         name: "get_curtain_panel_types",
         description: "取得專案中所有可用的帷幕牆面板類型。",
         inputSchema: { type: "object", properties: {} },
