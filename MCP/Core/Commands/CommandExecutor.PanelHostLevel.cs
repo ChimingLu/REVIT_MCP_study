@@ -63,12 +63,30 @@ namespace RevitMCP.Core
 
                 foreach (ElementId panelId in wall.CurtainGrid.GetPanelIds())
                 {
-                    if (!seen.Add(panelId.GetIdValue())) continue;
                     Element panel = doc.GetElement(panelId);
-                    if (panel == null) continue;
+                    if (panel == null || panel is Wall) continue; // 牆型嵌板在下一段處理
+                    if (!seen.Add(panelId.GetIdValue())) continue;
                     panelsScanned++;
                     targets.Add(new KeyValuePair<Element, Level>(panel, level));
                 }
+            }
+
+            // 以基本牆充當的嵌板（鋁板等）：用它自己的「底部約束」。
+            // 這類嵌板不一定出現在 CurtainGrid.GetPanelIds()，改從帷幕板品類收集。
+            var wallPanels = new FilteredElementCollector(doc)
+                .OfCategory(BuiltInCategory.OST_CurtainWallPanels)
+                .WhereElementIsNotElementType()
+                .OfType<Wall>();
+            foreach (Wall wallPanel in wallPanels)
+            {
+                if (!seen.Add(wallPanel.Id.GetIdValue())) continue;
+                ElementId baseId = wallPanel.get_Parameter(BuiltInParameter.WALL_BASE_CONSTRAINT)?.AsElementId();
+                Level baseLevel = baseId != null ? doc.GetElement(baseId) as Level : null;
+                if (baseLevel == null) { noLevel++; continue; }
+                if (!string.IsNullOrEmpty(levelFilter) && !baseLevel.Name.Equals(levelFilter, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                panelsScanned++;
+                targets.Add(new KeyValuePair<Element, Level>(wallPanel, baseLevel));
             }
 
             Transaction trans = null;
