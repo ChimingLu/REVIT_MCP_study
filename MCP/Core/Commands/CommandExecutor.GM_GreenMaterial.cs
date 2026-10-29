@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
@@ -139,7 +139,7 @@ namespace RevitMCP.Core
                                 {
                                     ParameterName = exDef.Name,
                                     Group = defGroup.Name,
-                                    DataType = exDef.GetDataType().TypeId,
+                                    DataType = RevitCompatibility.DataTypeName(exDef),
                                     Status = "尚未綁定，會建立新綁定"
                                 });
                                 continue;
@@ -377,7 +377,7 @@ namespace RevitMCP.Core
                                 {
                                     ParameterName = exDef.Name,
                                     Group = defGroup.Name,
-                                    DataType = exDef.GetDataType().TypeId,
+                                    DataType = RevitCompatibility.DataTypeName(exDef),
                                     Status = "綁定成功"
                                 });
                             }

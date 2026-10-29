@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -210,11 +210,19 @@ namespace RevitMCP.Core
 
                     FamilyManager fm = fam.FamilyManager;
                     if (fm.CurrentType == null) fm.NewType("預設");
+#if REVIT2022_OR_GREATER
                     FamilyParameter pL = fm.AddParameter(ParamLeft, GroupTypeId.Geometry, SpecTypeId.Angle, true);
                     FamilyParameter pR = fm.AddParameter(ParamRight, GroupTypeId.Geometry, SpecTypeId.Angle, true);
                     FamilyParameter pF = fm.AddParameter(ParamFar, GroupTypeId.Geometry, SpecTypeId.Length, true);
                     FamilyParameter pP = fm.AddParameter(ParamPitch, GroupTypeId.Geometry, SpecTypeId.Angle, true);
                     fm.AddParameter(ParamCamName, GroupTypeId.IdentityData, SpecTypeId.String.Text, true);
+#else
+                    FamilyParameter pL = fm.AddParameter(ParamLeft, BuiltInParameterGroup.PG_GEOMETRY, ParameterType.Angle, true);
+                    FamilyParameter pR = fm.AddParameter(ParamRight, BuiltInParameterGroup.PG_GEOMETRY, ParameterType.Angle, true);
+                    FamilyParameter pF = fm.AddParameter(ParamFar, BuiltInParameterGroup.PG_GEOMETRY, ParameterType.Length, true);
+                    FamilyParameter pP = fm.AddParameter(ParamPitch, BuiltInParameterGroup.PG_GEOMETRY, ParameterType.Angle, true);
+                    fm.AddParameter(ParamCamName, BuiltInParameterGroup.PG_IDENTITY_DATA, ParameterType.Text, true);
+#endif
                     try
                     {
                         fm.Set(pL, -30.0 * Math.PI / 180.0);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
@@ -426,6 +426,9 @@ namespace RevitMCP.Core
         /// <summary>Hidden Line 頁</summary>
         private static object MepReadHiddenLineSettings(Document doc, Units units)
         {
+#if !REVIT2022_OR_GREATER
+            return null; // MEPHiddenLineSettings 是 Revit 2022 才有的 API
+#else
             MEPHiddenLineSettings hl = MEPHiddenLineSettings.GetMEPHiddenLineSettings(doc);
             if (hl == null) return null;
 
@@ -437,6 +440,7 @@ namespace RevitMCP.Core
                 outsideGap_mm = ToMm(hl.OutsideGap),
                 insideGap_mm = ToMm(hl.InsideGap),
             };
+#endif
         }
 
         /// <summary>

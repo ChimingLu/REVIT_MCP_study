@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
@@ -130,7 +130,7 @@ namespace RevitMCP.Core
             var pe = doc.GetElement(paramId) as ParameterElement;
             if (pe != null)
             {
-                try { return pe.GetDefinition().GetDataType() == SpecTypeId.String.Text ? StorageType.String : StorageType.None; }
+                try { return RevitCompatibility.IsTextDefinition(pe.GetDefinition()) ? StorageType.String : StorageType.None; }
                 catch { }
             }
             return StorageType.None;

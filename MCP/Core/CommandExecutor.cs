@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
@@ -450,6 +450,10 @@ namespace RevitMCP.Core
 
                     case "create_view_schedule":
                         result = CreateViewSchedule(parameters);
+                        break;
+
+                    case "modify_view_schedule":
+                        result = ModifyViewSchedule(parameters);
                         break;
 
                     case "list_schedules":
@@ -1144,7 +1148,13 @@ namespace RevitMCP.Core
                 }
 
                 // 使用 Floor.Create (適用於 Revit 2022+)
+#if REVIT2022_OR_GREATER
                 Floor floor = Floor.Create(doc, new List<CurveLoop> { curveLoop }, floorType.Id, level.Id);
+#else
+                CurveArray curveArray = new CurveArray();
+                foreach (Curve c in curveLoop) curveArray.Append(c);
+                Floor floor = doc.Create.NewFloor(curveArray, floorType, level, false);
+#endif
 
                 trans.Commit();
 
@@ -3414,7 +3424,11 @@ namespace RevitMCP.Core
                         double val = (p.StorageType == StorageType.Double) ? p.AsDouble() : p.AsInteger();
                         
                         // 轉換為 mm (如果適用，Revit 2024 寫法)
+#if REVIT2022_OR_GREATER
                         if (p.Definition.GetDataType() == SpecTypeId.Length) val *= 304.8;
+#else
+                        if (p.Definition.ParameterType == ParameterType.Length) val *= 304.8;
+#endif
                         
                         if (val < min) min = val;
                         if (val > max) max = val;
@@ -4498,7 +4512,7 @@ namespace RevitMCP.Core
                 try { spec = field.GetSpecTypeId(); } catch { }
                 if (spec != null && spec == SpecTypeId.Length)
                     return new ScheduleFilter(field.FieldId, type, UnitUtils.ConvertToInternalUnits(number, UnitTypeId.Millimeters));
-                if (spec == null || spec != SpecTypeId.String.Text)
+                if (spec == null || !RevitCompatibility.IsTextSpec(spec))
                 {
                     if (Math.Abs(number - Math.Round(number)) < 1e-9)
                     {

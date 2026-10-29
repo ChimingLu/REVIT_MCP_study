@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
@@ -415,7 +415,13 @@ namespace RevitMCP.Core
                         }
 
                         XYZ currentBoxCenter = vp.GetBoxCenter();
+#if REVIT2022_OR_GREATER
                         XYZ currentLabelOffset = vp.LabelOffset ?? XYZ.Zero;
+#else
+                        throw new NotSupportedException("Viewport.LabelOffset 需要 Revit 2022 以上");
+#pragma warning disable CS0162
+                        XYZ currentLabelOffset = XYZ.Zero;
+#endif
 
                         // 取得 current label center (in sheet coords)
                         XYZ currentLabelCenter = null;
@@ -499,7 +505,9 @@ namespace RevitMCP.Core
 
                         if (!dryRun)
                         {
+#if REVIT2022_OR_GREATER
                             vp.LabelOffset = newLabelOffset;
+#endif
                         }
 
                         object oldCenterMm = currentLabelCenter != null

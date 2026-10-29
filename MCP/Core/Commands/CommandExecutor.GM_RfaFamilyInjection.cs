@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -500,7 +500,11 @@ namespace RevitMCP.Core
             // 這裡的 IdentityData → Data 雙群組 fallback 與根因無關，但本身無害，在根因修好後
             // 仍保留作為額外防禦（例如某些家族類別確實不接受 IdentityData 群組下的特定欄位）。
             string lastError = null;
+#if REVIT2022_OR_GREATER
             foreach (var groupId in new[] { GroupTypeId.IdentityData, GroupTypeId.Data })
+#else
+            foreach (var groupId in new[] { BuiltInParameterGroup.PG_IDENTITY_DATA, BuiltInParameterGroup.PG_DATA })
+#endif
             {
                 try
                 {
@@ -509,7 +513,7 @@ namespace RevitMCP.Core
                 }
                 catch (Exception ex)
                 {
-                    lastError = $"{groupId.TypeId}: {ex.Message}";
+                    lastError = $"{groupId}: {ex.Message}";
                 }
             }
 

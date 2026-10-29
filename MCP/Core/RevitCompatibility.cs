@@ -35,5 +35,42 @@ namespace RevitMCP.Core
         {
             return new ElementId(value);
         }
+
+        /// <summary>
+        /// 規格是否為文字（2022+ 為 SpecTypeId.String.Text；2021 沒有這個常數，改看 TypeId 字串）
+        /// </summary>
+        internal static bool IsTextSpec(ForgeTypeId spec)
+        {
+            if (spec == null) return false;
+#if REVIT2022_OR_GREATER
+            return spec == SpecTypeId.String.Text;
+#else
+            return (spec.TypeId ?? "").Contains("string");
+#endif
+        }
+
+        /// <summary>
+        /// 參數定義是否為文字（2021 用 ParameterType，2022+ 用 GetDataType）
+        /// </summary>
+        internal static bool IsTextDefinition(Definition def)
+        {
+#if REVIT2022_OR_GREATER
+            return def.GetDataType() == SpecTypeId.String.Text;
+#else
+            return def.ParameterType == ParameterType.Text;
+#endif
+        }
+
+        /// <summary>
+        /// 參數定義的資料型別名稱（2022+ 回傳 ForgeTypeId 字串，2021 回傳 ParameterType 名稱）
+        /// </summary>
+        internal static string DataTypeName(Definition def)
+        {
+#if REVIT2022_OR_GREATER
+            return def.GetDataType().TypeId;
+#else
+            return def.ParameterType.ToString();
+#endif
+        }
     }
 }
