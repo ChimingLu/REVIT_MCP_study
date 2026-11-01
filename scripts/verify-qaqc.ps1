@@ -262,6 +262,7 @@ if (Test-Path $csproj) {
     Write-Check "Release.R24 config" ($content -match "Release\.R24") "Missing Revit 2024 config"
     Write-Check "Release.R25 config" ($content -match "Release\.R25") "Missing Revit 2025 config"
     Write-Check "Release.R26 config" ($content -match "Release\.R26") "Missing Revit 2026 config"
+    Write-Check "Release.R27 config" ($content -match "Release\.R27") "Missing Revit 2027 config"
 }
 else {
     Write-Check "csproj exists" $false "Cannot validate build config"
@@ -629,11 +630,14 @@ else {
     # 刻意重複定義——兩支都是獨立入口腳本，抽共用模組的 import 成本大於 5 行常值；
     # 修改任一側時必須同步另一側（雙向註解互指）。
     $versionConfigMap = @{
+        "2020" = "Release.R22"
+        "2021" = "Release.R22"
         "2022" = "Release.R22"
         "2023" = "Release.R23"
         "2024" = "Release.R24"
         "2025" = "Release.R25"
         "2026" = "Release.R26"
+        "2027" = "Release.R27"
     }
     # supportedVersions 由對應表導出，檔內單一事實來源（取代原硬編陣列）
     $supportedVersions = @($versionConfigMap.Keys | Sort-Object)

@@ -363,10 +363,10 @@ else {
             }
             Write-OK ".NET CLI 可用"
             if ($hasNet8) {
-                Write-OK ".NET 8 SDK 已安裝（Revit 2025-2026 可用）"
+                Write-OK ".NET 8 SDK 已安裝（Revit 2025-2027 可用）"
             }
             else {
-                Write-Info ".NET 8 SDK 未安裝（僅影響 Revit 2025/2026）"
+                Write-Info ".NET 8 SDK 未安裝（僅影響 Revit 2025/2026/2027）"
             }
             Add-Result ".NET SDK" "OK" $(if ($hasNet8) { ".NET 8 available" } else { "No .NET 8" })
         }
@@ -428,7 +428,7 @@ else {
 
 Write-StepHeader "選擇 Revit 版本"
 
-$supportedVersions = @("2022", "2023", "2024", "2025", "2026")
+$supportedVersions = @("2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027")
 $detectedVersions = @()
 $selectedVersions = @()
 
@@ -685,11 +685,14 @@ else {
     }
     else {
         $versionConfigMap = @{
+            "2020" = "Release.R22"
+            "2021" = "Release.R22"
             "2022" = "Release.R22"
             "2023" = "Release.R23"
             "2024" = "Release.R24"
             "2025" = "Release.R25"
             "2026" = "Release.R26"
+            "2027" = "Release.R27"
         }
 
         foreach ($ver in $selectedVersions) {

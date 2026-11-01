@@ -19,6 +19,16 @@ namespace RevitMCP.Core
     /// </summary>
     public partial class CommandExecutor
     {
+#if NO_FORGE_TYPE_ID
+        private object SetProjectUnits(JObject parameters)
+        {
+            return new
+            {
+                success = false,
+                message = "set_project_units requires Revit 2022+ API (ForgeTypeId). Revit 2020/2021 does not support this command."
+            };
+        }
+#else
         #region set_project_units
 
         // ── 友善字串 → Revit 單位 ForgeTypeId（大小寫不敏感）────────────────
@@ -311,5 +321,6 @@ namespace RevitMCP.Core
         }
 
         #endregion
+#endif
     }
 }

@@ -40,7 +40,7 @@ if not exist "%ADDIN_SOURCE%" (
 )
 
 :: 定義目標 Revit 版本（只安裝到存在的 Addins 資料夾）
-set "VERSIONS=2022 2023 2024 2025 2026"
+set "VERSIONS=2020 2021 2022 2023 2024 2025 2026 2027"
 
 :: 執行複製動作
 for %%V in (%VERSIONS%) do (

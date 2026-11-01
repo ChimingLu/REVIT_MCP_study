@@ -85,7 +85,11 @@ namespace RevitMCP.Core
 
                 _runtime = (IRevitMcpRuntime)Activator.CreateInstance(type);
                 _runtime.Initialize(_uiApplication);
+#if CORE_RUNTIME_BUILD
+                _runtime.SetReloadCallback(() => { });
+#else
                 _runtime.SetReloadCallback(() => Application.RequestReloadCoreFromBackground());
+#endif
                 Logger.Info("CoreRuntime 已載入");
             }
         }

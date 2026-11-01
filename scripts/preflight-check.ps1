@@ -120,9 +120,9 @@ try {
         }
 
         if ($hasNet8) {
-            Write-Check ".NET 8 SDK" "PASS" "Revit 2025-2026 可用"
+            Write-Check ".NET 8 SDK" "PASS" "Revit 2025-2027 可用"
         } else {
-            Write-Check ".NET 8 SDK" "WARN" "未安裝（僅影響 Revit 2025-2026 建構）"
+            Write-Check ".NET 8 SDK" "WARN" "未安裝（僅影響 Revit 2025-2027 建構）"
         }
     }
 } catch {
@@ -135,7 +135,7 @@ if (Test-Path $frameworkKey) {
     $release = (Get-ItemProperty $frameworkKey -ErrorAction SilentlyContinue).Release
     if ($release -ge 528040) {
         $hasFramework48 = $true
-        Write-Check ".NET Framework 4.8" "PASS" "Revit 2022-2024 可用"
+        Write-Check ".NET Framework 4.8" "PASS" "Revit 2020-2024 可用"
     } else {
         Write-Check ".NET Framework 4.8" "WARN" "版本過舊（Release=$release，需要 >= 528040）"
     }
@@ -179,7 +179,7 @@ if (Test-Path $addinsBase) {
     }
 
     if ($detectedVersions.Count -eq 0) {
-        Write-Check "Revit Addins" "WARN" "找到 Addins 根目錄但無 2022-2026 版本資料夾（Revit 可能未安裝）"
+        Write-Check "Revit Addins" "WARN" "找到 Addins 根目錄但無 2020-2027 版本資料夾（Revit 可能未安裝）"
     }
 } else {
     Write-Check "Revit Addins 資料夾" "WARN" "不存在：$addinsBase（Revit 可能未安裝在此電腦）"
@@ -302,7 +302,7 @@ if ($failed -eq 0 -and $warned -eq 0) {
         Write-Host "    cd MCP-Server && npm install && npm run build" -ForegroundColor Gray
     }
     if (-not (Test-Path $dllRelease) -and -not (Test-Path $dllDebug)) {
-        Write-Host "    cd MCP && dotnet build -c Release.R24 RevitMCP.csproj" -ForegroundColor Gray
+        Write-Host "    cd MCP && dotnet build -c Release.R22 RevitMCP.csproj" -ForegroundColor Gray
     }
 }
 

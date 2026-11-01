@@ -531,9 +531,26 @@ namespace RevitMCP.Core
         /// forEditing=true 會略過專案的顯示精度四捨五入 —— 坡度要用它，
         /// 否則專案若把坡度精度設成 1/2"，1/8" 與 1/4" 會被捨進成同一個字串。
         /// </summary>
-        private static string MepFormatValue(Units units, ForgeTypeId spec, double value, bool forEditing = false)
+        private static string MepFormatValue(Units units, object spec, double value, bool forEditing = false)
         {
-            try { return UnitFormatUtils.Format(units, spec, value, forEditing); }
+            try
+            {
+                if (spec != null)
+                {
+                    try
+                    {
+                        return UnitFormatUtils.Format(units, (dynamic)spec, value, forEditing);
+                    }
+                    catch
+                    {
+                    }
+                }
+#if NO_FORGE_TYPE_ID
+                return UnitFormatUtils.Format(units, UnitType.UT_Number, value, false, false);
+#else
+                return null;
+#endif
+            }
             catch { return null; }
         }
 

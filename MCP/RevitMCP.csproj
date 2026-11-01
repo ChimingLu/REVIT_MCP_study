@@ -10,8 +10,8 @@
     <DeployAddin>false</DeployAddin>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <Configurations>
-      Debug.R20;Debug.R21;Debug.R22;Debug.R23;Debug.R24;Debug.R25;Debug.R26;Debug.R27;
-      Release.R20;Release.R21;Release.R22;Release.R23;Release.R24;Release.R25;Release.R26;Release.R27
+      Debug.R22;Debug.R23;Debug.R24;Debug.R25;Debug.R26;Debug.R27;
+      Release.R22;Release.R23;Release.R24;Release.R25;Release.R26;Release.R27
     </Configurations>
   </PropertyGroup>
 
@@ -31,14 +31,14 @@
     <Resource Include="Resources\icon-32-off.png" />
   </ItemGroup>
 
-  <Target Name="BuildCoreRuntime" BeforeTargets="Build">
+  <Target Name="BuildCoreRuntime" BeforeTargets="Build" Condition="'$(Configuration)'=='Debug.R25' Or '$(Configuration)'=='Release.R25' Or '$(Configuration)'=='Debug.R26' Or '$(Configuration)'=='Release.R26' Or '$(Configuration)'=='Debug.R27' Or '$(Configuration)'=='Release.R27'">
     <MSBuild
       Projects="..\MCP.CoreRuntime\MCP.CoreRuntime.csproj"
       Targets="Restore;Build"
       Properties="Configuration=$(Configuration)" />
   </Target>
 
-  <Target Name="CopyCoreRuntimeArtifacts" AfterTargets="Build">
+  <Target Name="CopyCoreRuntimeArtifacts" AfterTargets="Build" Condition="'$(Configuration)'=='Debug.R25' Or '$(Configuration)'=='Release.R25' Or '$(Configuration)'=='Debug.R26' Or '$(Configuration)'=='Release.R26' Or '$(Configuration)'=='Debug.R27' Or '$(Configuration)'=='Release.R27'">
     <MakeDir Directories="$(OutDir)runtime" />
     <Delete Files="$(OutDir)runtime\MCP.Contracts.dll" ContinueOnError="true" />
     <Copy

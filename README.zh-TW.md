@@ -84,8 +84,8 @@ Autodesk Revit
 | 項目 | 需求 |
 |---|---|
 | OS | Windows 10 或更新版本 |
-| Revit | Autodesk Revit 2022、2023、2024、2025、2026 |
-| .NET | Revit 2022-2024 使用 .NET Framework 4.8；Revit 2025-2026 使用 .NET 8 |
+| Revit | Autodesk Revit 2020、2021、2022、2023、2024、2025、2026、2027 |
+| .NET | Revit 2020-2024 使用 .NET Framework 4.8；Revit 2025-2027 使用 .NET 8 |
 | Node.js | LTS，建議 20.x 或更新版本 |
 
 ## 一鍵安裝
@@ -136,11 +136,12 @@ node MCP-Server/build/index.js
 
 ```powershell
 cd MCP
-dotnet build -c Release.R22 RevitMCP.csproj   # Revit 2022
+dotnet build -c Release.R22 RevitMCP.csproj   # Revit 2020/2021/2022 相容建置
 dotnet build -c Release.R23 RevitMCP.csproj   # Revit 2023
 dotnet build -c Release.R24 RevitMCP.csproj   # Revit 2024
 dotnet build -c Release.R25 RevitMCP.csproj   # Revit 2025
 dotnet build -c Release.R26 RevitMCP.csproj   # Revit 2026
+dotnet build -c Release.R27 RevitMCP.csproj   # Revit 2027
 ```
 
 輸出路徑是：
@@ -257,7 +258,7 @@ REVIT_MCP/
     Core/
       SocketService.cs         Revit-side WebSocket server
       ExternalEventManager.cs  UI-thread execution bridge
-      RevitCompatibility.cs    Revit 2022-2026 compatibility helpers
+      RevitCompatibility.cs    Revit 2020-2027 compatibility helpers
       CommandExecutor.cs       Main command dispatcher
       Commands/*.cs            Command modules
   MCP-Server/                  MCP Server (Node.js / TypeScript)

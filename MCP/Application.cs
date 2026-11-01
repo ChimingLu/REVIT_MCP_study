@@ -670,7 +670,7 @@ namespace RevitMCP
         /// </summary>
         public static void RequestToggleButtonIconRefresh()
         {
-            ApplyToggleButtonState(_socketService != null && _socketService.IsRunning);
+            ApplyToggleButtonState(IsServiceRunning());
             _toggleIconRecheckTicks = ToggleIconRecheckTicks;
         }
 
@@ -678,7 +678,7 @@ namespace RevitMCP
         {
             if (_toggleIconRecheckTicks <= 0) return;
             _toggleIconRecheckTicks--;
-            ApplyToggleButtonState(_socketService != null && _socketService.IsRunning);
+            ApplyToggleButtonState(IsServiceRunning());
         }
 
         private static void OnCameraManagerIdling(object sender, Autodesk.Revit.UI.Events.IdlingEventArgs e)

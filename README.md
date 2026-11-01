@@ -84,8 +84,8 @@ External AI clients do not need an API key inside this repository. Their account
 | Item | Requirement |
 |---|---|
 | OS | Windows 10 or later |
-| Revit | Autodesk Revit 2022, 2023, 2024, 2025, 2026 |
-| .NET | .NET Framework 4.8 for Revit 2022-2024; .NET 8 for Revit 2025-2026 |
+| Revit | Autodesk Revit 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027 |
+| .NET | .NET Framework 4.8 for Revit 2020-2024; .NET 8 for Revit 2025-2027 |
 | Node.js | LTS, preferably 20.x or later |
 
 ## One-Click Setup
@@ -136,11 +136,12 @@ Choose the configuration that matches your Revit version:
 
 ```powershell
 cd MCP
-dotnet build -c Release.R22 RevitMCP.csproj   # Revit 2022
+dotnet build -c Release.R22 RevitMCP.csproj   # Revit 2020/2021/2022 fallback
 dotnet build -c Release.R23 RevitMCP.csproj   # Revit 2023
 dotnet build -c Release.R24 RevitMCP.csproj   # Revit 2024
 dotnet build -c Release.R25 RevitMCP.csproj   # Revit 2025
 dotnet build -c Release.R26 RevitMCP.csproj   # Revit 2026
+dotnet build -c Release.R27 RevitMCP.csproj   # Revit 2027
 ```
 
 Expected output:
@@ -259,7 +260,7 @@ REVIT_MCP/
     Core/
       SocketService.cs         Revit-side WebSocket server
       ExternalEventManager.cs  UI-thread execution bridge
-      RevitCompatibility.cs    Revit 2022-2026 compatibility helpers
+      RevitCompatibility.cs    Revit 2020-2027 compatibility helpers
       CommandExecutor.cs       Main command dispatcher
       Commands/*.cs            Command modules
   MCP-Server/                  MCP Server (Node.js / TypeScript)

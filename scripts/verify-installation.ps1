@@ -53,7 +53,7 @@ else {
 Write-Host ""
 Write-Host "[Check 2b] Duplicate .addin Check (All Installed Versions)..." -ForegroundColor Cyan
 $appDataPath = $env:APPDATA
-$supportedVersions = @("2022", "2023", "2024", "2025", "2026")
+$supportedVersions = @("2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027")
 $duplicateFound = $false
 foreach ($ver in $supportedVersions) {
     $addinsDir = Join-Path $appDataPath "Autodesk\Revit\Addins\$ver"
@@ -94,7 +94,7 @@ elseif (Test-Path "$projectRoot\MCP\bin\Release.2024\RevitMCP.dll") {
 }
 else {
     Write-Host "  WARNING: DLL not built yet" -ForegroundColor Yellow
-    Write-Host "    Need to run: dotnet build -c Release.R24 RevitMCP.csproj" -ForegroundColor Gray
+    Write-Host "    Need to run: dotnet build -c Release.R22 RevitMCP.csproj" -ForegroundColor Gray
 }
 
 # Check 4: Install Script
@@ -123,10 +123,12 @@ Write-Host ""
 if (-not $foundDll) {
     Write-Host "1. Build the project (choose your Revit version):" -ForegroundColor Yellow
     Write-Host "   cd `"$projectRoot\MCP`"" -ForegroundColor Gray
+    Write-Host "   dotnet build -c Release.R22 RevitMCP.csproj   # Revit 2020/2021 fallback build" -ForegroundColor Gray
     Write-Host "   dotnet build -c Release.R22 RevitMCP.csproj   # Revit 2022" -ForegroundColor Gray
     Write-Host "   dotnet build -c Release.R24 RevitMCP.csproj   # Revit 2024" -ForegroundColor Gray
     Write-Host "   dotnet build -c Release.R25 RevitMCP.csproj   # Revit 2025" -ForegroundColor Gray
     Write-Host "   dotnet build -c Release.R26 RevitMCP.csproj   # Revit 2026" -ForegroundColor Gray
+    Write-Host "   dotnet build -c Release.R27 RevitMCP.csproj   # Revit 2027" -ForegroundColor Gray
     Write-Host ""
 }
 
