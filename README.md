@@ -167,6 +167,9 @@ Recommended:
 
 # Deploy to every installed version that has a matching build
 .\scripts\install-addon.ps1 -All
+
+# Sync current branch with origin/main, rebuild, and redeploy (recommended for this deployment branch)
+.\scripts\sync-main-and-redeploy.ps1
 ```
 
 The script copies **every DLL in the build output** (13 for R22-R24, 8 for R25-R26 — both are correct),

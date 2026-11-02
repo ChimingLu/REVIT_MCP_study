@@ -166,6 +166,9 @@ MCP/bin/Release.R24/RevitMCP.dll
 
 # 多版本環境一次部署完
 .\scripts\install-addon.ps1 -All
+
+# 一鍵同步目前分支與 origin/main、重新建置並重新部署（建議部署分支使用）
+.\scripts\sync-main-and-redeploy.ps1
 ```
 
 腳本會複製**建構產物中的全部 DLL**（R22–R24 為 13 個、R25–R26 為 8 個，兩者都正確）、
