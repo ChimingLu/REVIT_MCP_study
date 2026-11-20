@@ -179,8 +179,12 @@ namespace RevitMCP.Core
                 entry["FilterId"] = fid.GetIdValue();
                 entry["Name"] = filterElem?.Name ?? "Unknown";
 
+#if REVIT2025_OR_GREATER
                 try { entry["Enabled"] = view.GetIsFilterEnabled(fid); }
                 catch { entry["Enabled"] = false; }
+#else
+                entry["Enabled"] = true;
+#endif
 
                 try { entry["Visible"] = view.GetFilterVisibility(fid); }
                 catch { entry["Visible"] = true; }

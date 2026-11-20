@@ -107,8 +107,13 @@ namespace RevitMCP.Core
                 }
 
                 // c. 複製並設定寬高（修改包在交易內）
+#if NO_FORGE_TYPE_ID
+                double widthInternal = UnitUtils.ConvertToInternalUnits(widthCm.Value, DisplayUnitType.DUT_CENTIMETERS);
+                double heightInternal = UnitUtils.ConvertToInternalUnits(heightCm.Value, DisplayUnitType.DUT_CENTIMETERS);
+#else
                 double widthInternal = UnitUtils.ConvertToInternalUnits(widthCm.Value, UnitTypeId.Centimeters);
                 double heightInternal = UnitUtils.ConvertToInternalUnits(heightCm.Value, UnitTypeId.Centimeters);
+#endif
 
                 BuiltInParameter[] widthBips = bic == BuiltInCategory.OST_Doors
                     ? new[] { BuiltInParameter.FAMILY_WIDTH_PARAM, BuiltInParameter.DOOR_WIDTH }

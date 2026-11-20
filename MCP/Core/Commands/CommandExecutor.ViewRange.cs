@@ -47,7 +47,11 @@ namespace RevitMCP.Core
                     Plane = kv.Key,
                     Level = DescribePlanViewLevel(doc, levelId),
                     LevelId = levelId.GetIdValue(),
+#if NO_FORGE_TYPE_ID
+                    OffsetMm = Math.Round(UnitUtils.ConvertFromInternalUnits(offsetFeet, DisplayUnitType.DUT_MILLIMETERS), 1)
+#else
                     OffsetMm = Math.Round(UnitUtils.ConvertFromInternalUnits(offsetFeet, UnitTypeId.Millimeters), 1)
+#endif
                 };
             }).ToList();
 
@@ -94,7 +98,11 @@ namespace RevitMCP.Core
                 if (token["offsetMm"] != null && token["offsetMm"].Type != JTokenType.Null)
                 {
                     offsetFeet = UnitUtils.ConvertToInternalUnits(
+#if NO_FORGE_TYPE_ID
+                        token["offsetMm"].Value<double>(), DisplayUnitType.DUT_MILLIMETERS);
+#else
                         token["offsetMm"].Value<double>(), UnitTypeId.Millimeters);
+#endif
                 }
 
                 if (levelId == null && !offsetFeet.HasValue) continue;
@@ -135,8 +143,13 @@ namespace RevitMCP.Core
                 {
                     Plane = u.Item2,
                     Level = DescribePlanViewLevel(doc, levelId),
+#if NO_FORGE_TYPE_ID
+                    OffsetMm = Math.Round(
+                        UnitUtils.ConvertFromInternalUnits(after.GetOffset(u.Item1), DisplayUnitType.DUT_MILLIMETERS), 1)
+#else
                     OffsetMm = Math.Round(
                         UnitUtils.ConvertFromInternalUnits(after.GetOffset(u.Item1), UnitTypeId.Millimeters), 1)
+#endif
                 });
             }
 

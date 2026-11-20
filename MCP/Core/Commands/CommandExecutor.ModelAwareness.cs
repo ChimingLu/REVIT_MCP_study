@@ -99,7 +99,28 @@ namespace RevitMCP.Core
             }
 
             string lengthUnit = null;
+#if NO_FORGE_TYPE_ID
+            try
+            {
+                var formatOptions = doc.GetUnits().GetFormatOptions(UnitType.UT_Length);
+                var displayUnits = formatOptions.GetType().GetProperty("DisplayUnits")?.GetValue(formatOptions);
+                if (displayUnits is System.Collections.IEnumerable seq)
+                {
+                    foreach (var item in seq)
+                    {
+                        lengthUnit = item?.ToString();
+                        if (!string.IsNullOrEmpty(lengthUnit)) break;
+                    }
+                }
+                else if (displayUnits != null)
+                {
+                    lengthUnit = displayUnits.ToString();
+                }
+            }
+            catch { }
+#else
             try { lengthUnit = doc.GetUnits().GetFormatOptions(SpecTypeId.Length).GetUnitTypeId().TypeId; } catch { }
+#endif
 
             int warningCount = 0;
             try { warningCount = doc.GetWarnings().Count; } catch { }

@@ -218,7 +218,11 @@ namespace RevitMCP.Core
         /// <summary>內部單位（feet）轉 mm</summary>
         private static double ToMm(double internalValue, int digits = 4)
         {
+#if NO_FORGE_TYPE_ID
+            return Math.Round(UnitUtils.ConvertFromInternalUnits(internalValue, DisplayUnitType.DUT_MILLIMETERS), digits);
+#else
             return Math.Round(UnitUtils.ConvertFromInternalUnits(internalValue, UnitTypeId.Millimeters), digits);
+#endif
         }
 
         /// <summary>取得 ElementId 對應元素的名稱；無效 id 或查無元素時回傳 null</summary>
@@ -290,8 +294,13 @@ namespace RevitMCP.Core
                 otherAngleParameters = MepScanAngleParameters(ds),
                 calculation = new
                 {
+#if NO_FORGE_TYPE_ID
+                    airDensity = new { raw = ds.AirDensity, display = MepFormatValue(units, null, ds.AirDensity) },
+                    airViscosity = new { raw = airViscosity, display = MepFormatValue(units, null, airViscosity) },
+#else
                     airDensity = new { raw = ds.AirDensity, display = MepFormatValue(units, SpecTypeId.MassDensity, ds.AirDensity) },
                     airViscosity = new { raw = airViscosity, display = MepFormatValue(units, SpecTypeId.HvacViscosity, airViscosity) },
+#endif
                     networkBasedCalculations,
                 },
                 annotation = new
@@ -334,7 +343,11 @@ namespace RevitMCP.Core
                 {
                     percent = Math.Round(slope, 6),
                     ratio_1_in = slope > 0 ? (double?)Math.Round(100.0 / slope, 2) : null,  // 1:N
+#if NO_FORGE_TYPE_ID
+                    display = MepFormatValue(units, null, slope / 100.0),
+#else
                     display = MepFormatValue(units, SpecTypeId.Slope, slope / 100.0),
+#endif
                 });
             }
 
@@ -356,8 +369,18 @@ namespace RevitMCP.Core
                     connectorTolerance = new
                     {
                         raw = ps.ConnectorTolerance,
-                        deg = Math.Round(UnitUtils.ConvertFromInternalUnits(ps.ConnectorTolerance, UnitTypeId.Degrees), 4),
+                        deg = Math.Round(UnitUtils.ConvertFromInternalUnits(ps.ConnectorTolerance,
+#if NO_FORGE_TYPE_ID
+                            (DisplayUnitType)Enum.Parse(typeof(DisplayUnitType), "DUT_DEGREES")
+#else
+                            UnitTypeId.Degrees
+#endif
+                            ), 4),
+#if NO_FORGE_TYPE_ID
+                        display = MepFormatValue(units, null, ps.ConnectorTolerance),
+#else
                         display = MepFormatValue(units, SpecTypeId.Angle, ps.ConnectorTolerance),
+#endif
                     },
                 },
                 annotation = new
@@ -405,8 +428,13 @@ namespace RevitMCP.Core
                         // Revit 溫度內部單位為 K
                         temperature_K = Math.Round(ft.Temperature, 4),
                         temperature_C = Math.Round(ft.Temperature - 273.15, 4),
+#if NO_FORGE_TYPE_ID
+                        viscosity = new { raw = ft.Viscosity, display = MepFormatValue(units, null, ft.Viscosity) },
+                        density = new { raw = ft.Density, display = MepFormatValue(units, null, ft.Density) },
+#else
                         viscosity = new { raw = ft.Viscosity, display = MepFormatValue(units, SpecTypeId.HvacViscosity, ft.Viscosity) },
                         density = new { raw = ft.Density, display = MepFormatValue(units, SpecTypeId.MassDensity, ft.Density) },
+#endif
                     });
                 }
 
@@ -426,6 +454,7 @@ namespace RevitMCP.Core
         /// <summary>Hidden Line 頁</summary>
         private static object MepReadHiddenLineSettings(Document doc, Units units)
         {
+#if REVIT2022_OR_GREATER
             MEPHiddenLineSettings hl = MEPHiddenLineSettings.GetMEPHiddenLineSettings(doc);
             if (hl == null) return null;
 
@@ -437,6 +466,9 @@ namespace RevitMCP.Core
                 outsideGap_mm = ToMm(hl.OutsideGap),
                 insideGap_mm = ToMm(hl.InsideGap),
             };
+#else
+            return null;
+#endif
         }
 
         /// <summary>
@@ -535,6 +567,11 @@ namespace RevitMCP.Core
         {
             try
             {
+#if NO_FORGE_TYPE_ID
+                // Revit 2020 仍沒有 ForgeTypeId / SpecTypeId 的 4-引數格式化重載，
+                // 需走一個明確的 legacy 分支，否則編譯器直接在此地卡死。
+                return UnitFormatUtils.Format(units, UnitType.UT_Number, value, false, false);
+#else
                 if (spec != null)
                 {
                     try
@@ -545,9 +582,6 @@ namespace RevitMCP.Core
                     {
                     }
                 }
-#if NO_FORGE_TYPE_ID
-                return UnitFormatUtils.Format(units, UnitType.UT_Number, value, false, false);
-#else
                 return null;
 #endif
             }

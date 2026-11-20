@@ -186,11 +186,19 @@ namespace RevitMCP.Core
             builder.SetSchemaName("RevitMCP_CameraSectionStateV2");
             builder.SetReadAccessLevel(AccessLevel.Public);
             builder.SetWriteAccessLevel(AccessLevel.Public);
+#if !NO_FORGE_TYPE_ID
             builder.AddSimpleField(FieldOriginX, typeof(double)).SetSpec(SpecTypeId.Length);
             builder.AddSimpleField(FieldOriginY, typeof(double)).SetSpec(SpecTypeId.Length);
             builder.AddSimpleField(FieldOriginZ, typeof(double)).SetSpec(SpecTypeId.Length);
             builder.AddSimpleField(FieldForwardX, typeof(double)).SetSpec(SpecTypeId.Number);
             builder.AddSimpleField(FieldForwardY, typeof(double)).SetSpec(SpecTypeId.Number);
+#else
+            builder.AddSimpleField(FieldOriginX, typeof(double));
+            builder.AddSimpleField(FieldOriginY, typeof(double));
+            builder.AddSimpleField(FieldOriginZ, typeof(double));
+            builder.AddSimpleField(FieldForwardX, typeof(double));
+            builder.AddSimpleField(FieldForwardY, typeof(double));
+#endif
             return builder.Finish();
         }
 
@@ -209,8 +217,10 @@ namespace RevitMCP.Core
                 {
                     Field field = state.GetField(f);
                     if (field == null) return "CameraSectionState 缺欄位 " + f;
+#if !NO_FORGE_TYPE_ID
                     ForgeTypeId spec = field.GetSpecTypeId();
                     if (spec == null || spec.Empty()) return "CameraSectionState 欄位 " + f + " 沒有 Spec";
+#endif
                 }
                 Schema options = GetOrCreateCameraSectionOptionsSchema();
                 if (options == null) return "CameraSectionOptions Schema 建立回傳 null";
@@ -305,11 +315,19 @@ namespace RevitMCP.Core
             {
                 Schema schema = GetOrCreateSectionStateSchema();
                 Entity e = new Entity(schema);
+#if !NO_FORGE_TYPE_ID
                 e.Set(schema.GetField(FieldOriginX), origin.X, UnitTypeId.Feet);
                 e.Set(schema.GetField(FieldOriginY), origin.Y, UnitTypeId.Feet);
                 e.Set(schema.GetField(FieldOriginZ), origin.Z, UnitTypeId.Feet);
                 e.Set(schema.GetField(FieldForwardX), forwardHoriz.X, UnitTypeId.General);
                 e.Set(schema.GetField(FieldForwardY), forwardHoriz.Y, UnitTypeId.General);
+#else
+                e.Set(schema.GetField(FieldOriginX), origin.X);
+                e.Set(schema.GetField(FieldOriginY), origin.Y);
+                e.Set(schema.GetField(FieldOriginZ), origin.Z);
+                e.Set(schema.GetField(FieldForwardX), forwardHoriz.X);
+                e.Set(schema.GetField(FieldForwardY), forwardHoriz.Y);
+#endif
                 sectionView.SetEntity(e);
             }
             catch (Exception ex)
@@ -351,11 +369,19 @@ namespace RevitMCP.Core
                 Entity e = sectionView.GetEntity(schema);
                 if (e == null || !e.IsValid()) return false;
 
+#if !NO_FORGE_TYPE_ID
                 double ox = e.Get<double>(schema.GetField(FieldOriginX), UnitTypeId.Feet);
                 double oy = e.Get<double>(schema.GetField(FieldOriginY), UnitTypeId.Feet);
                 double oz = e.Get<double>(schema.GetField(FieldOriginZ), UnitTypeId.Feet);
                 double fx = e.Get<double>(schema.GetField(FieldForwardX), UnitTypeId.General);
                 double fy = e.Get<double>(schema.GetField(FieldForwardY), UnitTypeId.General);
+#else
+                double ox = e.Get<double>(schema.GetField(FieldOriginX));
+                double oy = e.Get<double>(schema.GetField(FieldOriginY));
+                double oz = e.Get<double>(schema.GetField(FieldOriginZ));
+                double fx = e.Get<double>(schema.GetField(FieldForwardX));
+                double fy = e.Get<double>(schema.GetField(FieldForwardY));
+#endif
                 origin = new XYZ(ox, oy, oz);
                 forwardHoriz = new XYZ(fx, fy, 0);
                 return true;
@@ -3067,8 +3093,13 @@ namespace RevitMCP.Core
             try
             {
                 double v = l.Elevation;
+#if !NO_FORGE_TYPE_ID
                 string f = UnitFormatUtils.Format(doc.GetUnits(), SpecTypeId.Length, Math.Abs(v), false);
                 elev = (v < -1e-9 ? "-" : "+") + f;
+#else
+                string f = UnitFormatUtils.Format(doc.GetUnits(), UnitType.UT_Length, Math.Abs(CameraMath.FeetToMm(v)), false, false);
+                elev = (v < -1e-9 ? "-" : "+") + f;
+#endif
             }
             catch { elev = $"{(l.Elevation < 0 ? "-" : "+")}{Math.Abs(CameraMath.FeetToMm(l.Elevation)):F0} mm"; }
             return $"{l.Name}  {elev}";

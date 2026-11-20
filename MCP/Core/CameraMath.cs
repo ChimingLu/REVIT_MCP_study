@@ -19,12 +19,20 @@ namespace RevitMCP.Core
     {
         internal static double FeetToMm(double feet)
         {
+#if NO_FORGE_TYPE_ID
+            return UnitUtils.ConvertFromInternalUnits(feet, DisplayUnitType.DUT_MILLIMETERS);
+#else
             return UnitUtils.ConvertFromInternalUnits(feet, UnitTypeId.Millimeters);
+#endif
         }
 
         internal static double MmToFeet(double mm)
         {
+#if NO_FORGE_TYPE_ID
+            return UnitUtils.ConvertToInternalUnits(mm, DisplayUnitType.DUT_MILLIMETERS);
+#else
             return UnitUtils.ConvertToInternalUnits(mm, UnitTypeId.Millimeters);
+#endif
         }
 
         /// <summary>取得文件內所有樓層，依 ProjectElevation 由低到高排序。</summary>

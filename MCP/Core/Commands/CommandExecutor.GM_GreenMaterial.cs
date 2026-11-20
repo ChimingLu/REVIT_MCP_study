@@ -139,7 +139,11 @@ namespace RevitMCP.Core
                                 {
                                     ParameterName = exDef.Name,
                                     Group = defGroup.Name,
+#if REVIT2022_OR_GREATER
                                     DataType = exDef.GetDataType().TypeId,
+#else
+                                    DataType = exDef.ParameterType.ToString(),
+#endif
                                     Status = "尚未綁定，會建立新綁定"
                                 });
                                 continue;
@@ -377,7 +381,11 @@ namespace RevitMCP.Core
                                 {
                                     ParameterName = exDef.Name,
                                     Group = defGroup.Name,
+#if REVIT2022_OR_GREATER
                                     DataType = exDef.GetDataType().TypeId,
+#else
+                                    DataType = exDef.ParameterType.ToString(),
+#endif
                                     Status = "綁定成功"
                                 });
                             }

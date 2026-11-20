@@ -223,7 +223,11 @@ namespace RevitMCP.Core
         /// <summary>mm 轉內部單位（feet）</summary>
         private static double ToFeet(double mm)
         {
+#if NO_FORGE_TYPE_ID
+            return UnitUtils.ConvertToInternalUnits(mm, DisplayUnitType.DUT_MILLIMETERS);
+#else
             return UnitUtils.ConvertToInternalUnits(mm, UnitTypeId.Millimeters);
+#endif
         }
 
         #endregion
@@ -384,15 +388,30 @@ namespace RevitMCP.Core
             public double OuterFeet;
             public bool UsedInSizeLists;
             public bool UsedInSizing;
-            public double NominalMm { get { return Math.Round(UnitUtils.ConvertFromInternalUnits(NominalFeet, UnitTypeId.Millimeters), 4); } }
+            public double NominalMm
+            {
+                get
+                {
+#if NO_FORGE_TYPE_ID
+                    return Math.Round(UnitUtils.ConvertFromInternalUnits(NominalFeet, DisplayUnitType.DUT_MILLIMETERS), 4);
+#else
+                    return Math.Round(UnitUtils.ConvertFromInternalUnits(NominalFeet, UnitTypeId.Millimeters), 4);
+#endif
+                }
+            }
 
             public object ToRestorePayload()
             {
                 return new
                 {
                     nominal_mm = NominalMm,
+#if NO_FORGE_TYPE_ID
+                    inner_mm = Math.Round(UnitUtils.ConvertFromInternalUnits(InnerFeet, DisplayUnitType.DUT_MILLIMETERS), 4),
+                    outer_mm = Math.Round(UnitUtils.ConvertFromInternalUnits(OuterFeet, DisplayUnitType.DUT_MILLIMETERS), 4),
+#else
                     inner_mm = Math.Round(UnitUtils.ConvertFromInternalUnits(InnerFeet, UnitTypeId.Millimeters), 4),
                     outer_mm = Math.Round(UnitUtils.ConvertFromInternalUnits(OuterFeet, UnitTypeId.Millimeters), 4),
+#endif
                     usedInSizeLists = UsedInSizeLists,
                     usedInSizing = UsedInSizing,
                 };

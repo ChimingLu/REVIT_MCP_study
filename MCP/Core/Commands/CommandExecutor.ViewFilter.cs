@@ -130,8 +130,13 @@ namespace RevitMCP.Core
             var pe = doc.GetElement(paramId) as ParameterElement;
             if (pe != null)
             {
+#if REVIT2022_OR_GREATER
                 try { return pe.GetDefinition().GetDataType() == SpecTypeId.String.Text ? StorageType.String : StorageType.None; }
                 catch { }
+#else
+                try { return pe.GetDefinition().ParameterType == ParameterType.Text ? StorageType.String : StorageType.None; }
+                catch { }
+#endif
             }
             return StorageType.None;
         }

@@ -77,6 +77,7 @@ namespace RevitMCP.Core
 
             // 標註對象（哪根梁/柱…）：走 references 以同時支援本模型與連結模型
             var tagged = new List<object>();
+#if REVIT2022_OR_GREATER
             try
             {
                 foreach (var refr in tag.GetTaggedReferences())
@@ -86,6 +87,7 @@ namespace RevitMCP.Core
                 }
             }
             catch { }
+#endif
 
             return new
             {
@@ -180,12 +182,16 @@ namespace RevitMCP.Core
             object leaderEnd = null;
             try
             {
+#if REVIT2022_OR_GREATER
 #if REVIT2023_OR_GREATER
                 if (tag.HasLeader && tag.IsLeaderVisible(refr))
 #else
                 if (tag.HasLeader) // R22 API 無 IsLeaderVisible；GetLeaderEnd 失敗由 catch 吞掉
 #endif
                     leaderEnd = ToMm(tag.GetLeaderEnd(refr));
+#else
+                if (tag.HasLeader) { /* Revit 2021 不支援此 API */ }
+#endif
             }
             catch { }
 

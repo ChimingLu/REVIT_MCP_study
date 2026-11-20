@@ -1382,8 +1382,13 @@ namespace RevitMCP.Core
                     curveLoop.Append(Line.CreateBound(start, end));
                 }
 
+                Floor floor = null;
+#if REVIT2022_OR_GREATER
                 // 使用 Floor.Create (適用於 Revit 2022+)
-                Floor floor = Floor.Create(doc, new List<CurveLoop> { curveLoop }, floorType.Id, level.Id);
+                floor = Floor.Create(doc, new List<CurveLoop> { curveLoop }, floorType.Id, level.Id);
+#else
+                throw new NotSupportedException("此功能需要 Revit 2022+；目前的目標版本不支援 Floor.Create。");
+#endif
 
                 trans.Commit();
 
@@ -3756,10 +3761,25 @@ namespace RevitMCP.Core
                     {
                         isNumeric = true;
                         double val = (p.StorageType == StorageType.Double) ? p.AsDouble() : p.AsInteger();
-                        
-                        // 轉換為 mm (如果適用，Revit 2024 寫法)
-                        if (p.Definition.GetDataType() == SpecTypeId.Length) val *= 304.8;
-                        
+
+                        // 轉換為 mm（若參數的資料型別是長度；用反射避開 Revit 2020–2026 API 差異）
+                        try
+                        {
+                            var definition = p.Definition;
+                            var getDataType = definition.GetType().GetMethod("GetDataType");
+                            if (getDataType != null)
+                            {
+                                var dataType = getDataType.Invoke(definition, null);
+                                if (dataType != null && dataType.ToString() == "Length") val *= 304.8;
+                            }
+                            else
+                            {
+                                var parameterType = definition.GetType().GetProperty("ParameterType")?.GetValue(definition);
+                                if (parameterType != null && parameterType.ToString() == "Length") val *= 304.8;
+                            }
+                        }
+                        catch { }
+
                         if (val < min) min = val;
                         if (val > max) max = val;
                     }
