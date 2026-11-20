@@ -313,6 +313,11 @@ function Install-ToVersion {
         return [pscustomobject]@{ Version = $RevitYear; Status = 'SKIP'; Reason = 'no build output' }
     }
     $srcDlls = @(Get-ChildItem -Path $srcDir -Filter '*.dll' -File -ErrorAction SilentlyContinue)
+    $runtimeSrcDir = Join-Path $srcDir 'runtime'
+    $runtimeDlls = @()
+    if (Test-Path $runtimeSrcDir) {
+        $runtimeDlls = @(Get-ChildItem -Path $runtimeSrcDir -Filter '*.dll' -File -ErrorAction SilentlyContinue)
+    }
     if ($srcDlls.Count -eq 0) {
         Write-Host "  [略過] $srcDir 內沒有任何 DLL" -ForegroundColor Yellow
         return [pscustomobject]@{ Version = $RevitYear; Status = 'SKIP'; Reason = 'build output empty' }
@@ -339,6 +344,11 @@ function Install-ToVersion {
         Write-Host "  [中止] Revit $RevitYear 屬 .NET 8 世代，不應含相容 shim，實際 $hasShims 個" -ForegroundColor Red
         Write-Host "         $srcDir 看起來是 .NET Framework 4.8（R20-R24）的產物" -ForegroundColor Yellow
         return [pscustomobject]@{ Version = $RevitYear; Status = 'FAIL'; Reason = 'generation mismatch (expected .NET 8, got .NET Framework layout)' }
+    }
+    if ((-not $expectFx) -and $runtimeDlls.Count -eq 0) {
+        Write-Host "  [中止] Revit $RevitYear 屬 .NET 8 世代，但建構產物缺少 runtime 子目錄 DLL" -ForegroundColor Red
+        Write-Host "         需要 runtime\RevitMCP.CoreRuntime.dll；請重新建構：dotnet build -c $BuildConfig MCP\RevitMCP.csproj" -ForegroundColor Yellow
+        return [pscustomobject]@{ Version = $RevitYear; Status = 'FAIL'; Reason = 'runtime dll missing for .NET 8 generation' }
     }
     $genName = if ($expectFx) { '.NET Framework 4.8' } else { '.NET 8' }
     Write-Host "  世代檢查通過（$genName，$($srcDlls.Count) 個 DLL）" -ForegroundColor Green
@@ -378,6 +388,7 @@ function Install-ToVersion {
     # 舊版只複製 RevitMCP.dll + Newtonsoft.Json.dll，其餘相依從不複製。
     # 實測後果：Revit 2026 長期缺 6 個相依，Excel 類工具必然 runtime 拋 FileNotFoundException。
     $copied = 0
+    $copiedRuntime = 0
     foreach ($f in $srcDlls) {
         try {
             Copy-Item -Path $f.FullName -Destination (Join-Path $dllDestDir $f.Name) -Force -ErrorAction Stop
@@ -389,6 +400,27 @@ function Install-ToVersion {
             return [pscustomobject]@{ Version = $RevitYear; Status = 'FAIL'; Reason = "copy failed: $($f.Name)" }
         }
     }
+    if ($runtimeDlls.Count -gt 0) {
+        $runtimeDestDir = Join-Path $dllDestDir 'runtime'
+        if (-not (Test-Path $runtimeDestDir)) {
+            try { New-Item -ItemType Directory -Path $runtimeDestDir -Force | Out-Null }
+            catch {
+                Write-Host "  [失敗] 無法建立 $runtimeDestDir -- $_" -ForegroundColor Red
+                return [pscustomobject]@{ Version = $RevitYear; Status = 'FAIL'; Reason = 'runtime destination create failed' }
+            }
+        }
+        foreach ($f in $runtimeDlls) {
+            try {
+                Copy-Item -Path $f.FullName -Destination (Join-Path $runtimeDestDir $f.Name) -Force -ErrorAction Stop
+                $copiedRuntime++
+            }
+            catch {
+                Write-Host "  [失敗] 無法複製 runtime\\$($f.Name) -- $_" -ForegroundColor Red
+                Write-Host "         常見原因：Revit 正在執行中（DLL 被鎖住），請關閉 Revit 後重試" -ForegroundColor Yellow
+                return [pscustomobject]@{ Version = $RevitYear; Status = 'FAIL'; Reason = "copy failed: runtime\\$($f.Name)" }
+            }
+        }
+    }
     try {
         Copy-Item -Path $sourceAddin -Destination (Join-Path $addonPath 'RevitMCP.addin') -Force -ErrorAction Stop
     }
@@ -396,7 +428,12 @@ function Install-ToVersion {
         Write-Host "  [失敗] 無法複製 RevitMCP.addin -- $_" -ForegroundColor Red
         return [pscustomobject]@{ Version = $RevitYear; Status = 'FAIL'; Reason = 'addin copy failed' }
     }
-    Write-Host "  已複製 $copied 個 DLL + RevitMCP.addin" -ForegroundColor Green
+    if ($copiedRuntime -gt 0) {
+        Write-Host "  已複製 $copied 個 DLL + runtime $copiedRuntime 個 DLL + RevitMCP.addin" -ForegroundColor Green
+    }
+    else {
+        Write-Host "  已複製 $copied 個 DLL + RevitMCP.addin" -ForegroundColor Green
+    }
 
     # --- R4：部署後逐檔 SHA256 驗證 ---
     $mismatch = @()
@@ -405,6 +442,13 @@ function Install-ToVersion {
         if (-not (Test-Path $t)) { $mismatch += "$($f.Name)（缺漏）"; continue }
         if ((Get-FileHash $f.FullName -Algorithm SHA256).Hash -ne (Get-FileHash $t -Algorithm SHA256).Hash) {
             $mismatch += "$($f.Name)（雜湊不符）"
+        }
+    }
+    foreach ($f in $runtimeDlls) {
+        $t = Join-Path (Join-Path $dllDestDir 'runtime') $f.Name
+        if (-not (Test-Path $t)) { $mismatch += "runtime\$($f.Name)（缺漏）"; continue }
+        if ((Get-FileHash $f.FullName -Algorithm SHA256).Hash -ne (Get-FileHash $t -Algorithm SHA256).Hash) {
+            $mismatch += "runtime\$($f.Name)（雜湊不符）"
         }
     }
     $addinSrcHash = (Get-FileHash $sourceAddin -Algorithm SHA256).Hash
